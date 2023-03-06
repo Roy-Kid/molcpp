@@ -1,31 +1,38 @@
+#ifndef GRAPH_H
+#define GRAPH_H
+
 #include <vector>
 
 namespace MolCpp
 {
 
     class Graph;
-    class Node;
     class Edge;
-
-    class Edge
-    {
-        public:
-
-        private:
-            Graph* _parent;
-            Node* _bgn;
-            Node* _end;
-
-    };
 
     class Node
     {
         public:
+            Node(): _parent{nullptr} {}
+            int GetNumEdges() const { return _edges.size(); }
 
-
-        private:
+        protected:
             Graph* _parent;
             std::vector<Edge*> _edges;
+
+    };
+
+
+    class Edge
+    {
+        public:
+            Edge(): _parent{nullptr}, _bgn{nullptr}, _end{nullptr} {}
+            Node* GetBgn() const { return _bgn; }
+            Node* GetEnd() const { return _end; }
+
+        protected:
+            Graph* _parent;
+            Node* _bgn;
+            Node* _end;
 
     };
 
@@ -39,7 +46,7 @@ namespace MolCpp
             // void RemoveNode(Node*);
             // void RemoveEdge(Edge*);
 
-        private:
+        protected:
             Graph* _parent;
             std::vector<Node*> _nodes;
             std::vector<Edge*> _edges;
@@ -47,3 +54,5 @@ namespace MolCpp
     };
 
 }
+
+#endif  // GRAPH_H

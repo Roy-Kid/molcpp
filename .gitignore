@@ -36,3 +36,6 @@
 
 # temp
 build
+
+# tests-data
+tests/tests-data

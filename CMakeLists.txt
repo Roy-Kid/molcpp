@@ -13,8 +13,8 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Add dependencies
-# set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/libs)
-# add_subdirectory(${CMAKE_MODULE_PATH}/chemfiles)
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/libs)
+add_subdirectory(${CMAKE_MODULE_PATH}/chemfiles)
 
 add_library(molcpp)
 
@@ -22,12 +22,20 @@ target_sources(
   molcpp
   PRIVATE
   src/graph.cpp
+  src/atom.cpp
+  src/bond.cpp
 )
 
 target_include_directories(
   molcpp
   PUBLIC
   ${PROJECT_SOURCE_DIR}/include
+)
+
+target_link_libraries(
+  molcpp
+  PUBLIC
+  chemfiles
 )
 
 # For debug and test

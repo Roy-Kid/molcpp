@@ -8,9 +8,24 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
+# get test data
+if (NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests-data")
+  # 如果不存在则下载
+  message(STATUS "Downloading test data...")
+  execute_process(
+    COMMAND git clone https://github.com/chemfiles/tests-data.git
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+  )
+else()
+  # 如果存在则跳过下载
+  message(STATUS "Test data already downloaded, skipping...")
+endif()
+
 add_executable(
     molcpp_test
-    test_graph.cpp
+    # test_graph.cpp
+    # test_atom.cpp
+    test_io_utils.cpp
 )
 
 target_link_libraries(
