@@ -13,17 +13,18 @@ add_executable(
     test_graph.cpp
 )
 
-# Add source files
 target_link_libraries(
     molcpp_test
-    # chemfiles
     GTest::gtest_main
+    molcpp
 )
+
 target_compile_options(molcpp_test
     PRIVATE
         -O1
         -Wall
         -g
 )
+
 include(GoogleTest)
 gtest_discover_tests(molcpp_test)

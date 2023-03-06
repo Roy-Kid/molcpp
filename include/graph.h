@@ -3,6 +3,21 @@
 namespace MolCpp
 {
 
+    class Graph;
+    class Node;
+    class Edge;
+
+    class Edge
+    {
+        public:
+
+        private:
+            Graph* _parent;
+            Node* _bgn;
+            Node* _end;
+
+    };
+
     class Node
     {
         public:
@@ -14,15 +29,6 @@ namespace MolCpp
 
     };
 
-    class Edge
-    {
-        public:
-
-        private:
-            Graph* _parent;
-            Node _bgn, _end;
-
-    };
 
     class Graph
     {

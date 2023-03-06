@@ -16,8 +16,23 @@ endif()
 # set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/libs)
 # add_subdirectory(${CMAKE_MODULE_PATH}/chemfiles)
 
+add_library(molcpp)
+
+target_sources(
+  molcpp
+  PRIVATE
+  src/graph.cpp
+)
+
+target_include_directories(
+  molcpp
+  PUBLIC
+  ${PROJECT_SOURCE_DIR}/include
+)
+
 # For debug and test
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
   enable_testing()
   add_subdirectory(tests)
+  
 endif()
