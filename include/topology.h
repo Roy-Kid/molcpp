@@ -18,6 +18,8 @@ namespace MolCpp
             std::vector<Atom> get_atoms() const { return _atoms; }
             void add_bond(const Bond& bond) { _bonds.push_back(bond); }
             std::vector<Bond> get_bonds() const { return _bonds; }
+            size_t get_natoms() const { return _atoms.size(); }
+            size_t get_nbonds() const { return _bonds.size(); }
 
         private:
             std::vector<Atom> _atoms;

@@ -16,15 +16,13 @@ namespace MolCpp
         return xt::adapt(temp_arr, shape);
     }
 
-    Frame::Frame(const chemfiles::Frame& chflFrame): _natoms(chflFrame.size()), _current_step(chflFrame.step())
+    Frame::Frame(const chemfiles::Frame& chflFrame): _current_step(chflFrame.step())
     {
 
-        std::vector<std::size_t> shape = {_natoms, 3};
-
-        _xyz = copy_to_xarray(chflFrame.positions(), {_natoms, 3});
+        _xyz = copy_to_xarray(chflFrame.positions(), {get_natoms(), 3});
 
         // copy topology
-        auto _topology = Topology(chflFrame.topology());
+        _topology = Topology(chflFrame.topology());
 
 
     }

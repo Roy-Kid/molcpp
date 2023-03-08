@@ -15,7 +15,8 @@ namespace MolCpp
     {
         public:
             Frame(const chemfiles::Frame&);
-            size_t get_natoms() const { return _natoms; }
+            size_t get_natoms() const { return _topology.get_natoms(); }
+            size_t get_nbonds() const { return _topology.get_nbonds(); }
             size_t get_current_step() const { return _current_step; }
             xt::xarray<double> get_xyz() const { return _xyz; }
             Topology get_topology() const { return _topology; }
@@ -23,7 +24,6 @@ namespace MolCpp
         private:
             // Topology
             // Cell
-            size_t _natoms;
             size_t _current_step;
             Topology _topology;
             xt::xarray<double> _xyz;
