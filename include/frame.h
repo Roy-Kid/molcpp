@@ -7,6 +7,7 @@
 #include "xtensor/xarray.hpp"
 #include "xtensor/xadapt.hpp"
 #include "atom.h"
+#include "topology.h"
 
 namespace MolCpp
 {
@@ -14,16 +15,17 @@ namespace MolCpp
     {
         public:
             Frame(const chemfiles::Frame&);
-            size_t GetNatoms() const { return _natoms; }
-            size_t GetCurrentStep() const { return _current_step; }
-            xt::xarray<double> GetXYZ() const { return _xyz; }
+            size_t get_natoms() const { return _natoms; }
+            size_t get_current_step() const { return _current_step; }
+            xt::xarray<double> get_xyz() const { return _xyz; }
+            Topology get_topology() const { return _topology; }
 
         private:
             // Topology
             // Cell
             size_t _natoms;
             size_t _current_step;
-            std::vector<Atom> _atoms;
+            Topology _topology;
             xt::xarray<double> _xyz;
 
     };

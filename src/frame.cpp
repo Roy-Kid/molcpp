@@ -23,13 +23,9 @@ namespace MolCpp
 
         _xyz = copy_to_xarray(chflFrame.positions(), {_natoms, 3});
 
-        // copy atom to _atoms
-        for (size_t i = 0; i < _natoms; i++)
-        {
-            _atoms.push_back(Atom(chflFrame[i]));
-        }
+        // copy topology
+        auto _topology = Topology(chflFrame.topology());
 
-        
 
     }
 

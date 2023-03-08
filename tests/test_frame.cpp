@@ -13,8 +13,16 @@ TEST(TestFrame, test_construct_from_chemfiles_frame) {
     chflFrame.add_bond(2, 1);    
 
     MolCpp::Frame frame(chflFrame);
-    EXPECT_EQ(frame.GetNatoms(), 3);
-    EXPECT_EQ(frame.GetCurrentStep(), current_step);
-    EXPECT_TRUE(frame.GetXYZ()==xt::xarray<double>({{1, 0, 0}, {0, 0, 0}, {0, 1, 0}}));
+    EXPECT_EQ(frame.get_natoms(), 3);
+    EXPECT_EQ(frame.get_current_step(), current_step);
+    EXPECT_TRUE(frame.get_xyz()==xt::xarray<double>({{1, 0, 0}, {0, 0, 0}, {0, 1, 0}}));
+
+    auto topo = frame.get_topology();
+
+    auto atoms = topo.get_atoms();
+    EXPECT_EQ(atoms.size(), 3);
+
+    auto bonds = topo.get_bonds();
+    EXPECT_EQ(bonds.size(), 2);
 
 }

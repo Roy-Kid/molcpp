@@ -31,10 +31,11 @@ target_include_directories(
 target_sources(
   molcpp
   PRIVATE
-  # src/graph.cpp
+  src/graph.cpp
   src/atom.cpp
-  # src/bond.cpp
+  src/bond.cpp
   # src/trajectory.cpp
+  src/topology.cpp
   src/frame.cpp
 )
 

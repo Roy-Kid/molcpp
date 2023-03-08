@@ -14,6 +14,7 @@ namespace MolCpp
         public:
             Node(): _parent{nullptr} {}
             int GetNumEdges() const { return _edges.size(); }
+            void set_parent(Graph* parent) { _parent = parent; }
 
         protected:
             Graph* _parent;
@@ -26,8 +27,10 @@ namespace MolCpp
     {
         public:
             Edge(): _parent{nullptr}, _bgn{nullptr}, _end{nullptr} {}
+            Edge(Node* begin, Node* end): _parent{nullptr} {}
             Node* GetBgn() const { return _bgn; }
             Node* GetEnd() const { return _end; }
+            void set_parent(Graph* parent) { _parent = parent; }
 
         protected:
             Graph* _parent;

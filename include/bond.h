@@ -11,9 +11,10 @@ namespace MolCpp
     class Bond: public Edge
     {
         public:
-            Bond() {}
+            Bond(Atom*, Atom*);
 
         private:
+            
 
     };
 
