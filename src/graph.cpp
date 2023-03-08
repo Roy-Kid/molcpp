@@ -1,50 +1,27 @@
 #include "graph.h"
-
+#include <iostream>
 namespace MolCpp
 {
 
-    // @brief: the number of combinations in a given container
-    // @param: v - the container
-    // @param: n - the number of elements in each combination
-    // @return: the number of combinations
-    std::vector<size_t> combination(std::vector<size_t> &v, size_t n)
+    void Node::add_edge(Edge* edge)
     {
-        if (v.size() < n) throw std::invalid_argument("v.size() < n");
-        if (v.size() == n) {
-            std::vector<size_t> result(v);
-            return result;
-        }
-        std::vector<size_t> result;
-        size_t *ka = new size_t[n]; // dynamically allocate an array of UINTs
-        unsigned int ki = n - 1;    // Point ki to the last elemet of the array
-        size_t N = v.size();        // N is the number of elements in the set
-        ka[ki] = N - 1;             // Prime the last elemet of the array.
-
-        while (true)
+        if (!has_edge(edge))
         {
-            unsigned int tmp = ka[ki]; // Optimization to prevent reading ka[ki] repeatedly
+            _edges.push_back(edge);
+        }
 
-            while (ki) // Fill to the left with consecutive descending values (blue squares)
-                ka[--ki] = --tmp;
+    }
 
-            for (size_t i = 0; i < n; ++i)
+    bool Node::has_edge(Edge* edge)
+    {
+        for (auto e : _edges)
+        {
+            if (e == edge)
             {
-                result.push_back(v[ka[i]]);
-            }
-
-            while (--ka[ki] == ki)
-            { // Decrement and check if the resulting value equals the index (bright green squares)
-                for (size_t i = 0; i < n; ++i)
-                {
-                    result.push_back(v[ka[i]]);
-                }
-                if (++ki == n)
-                { // Exit condition (all of the values in the array are flush to the left)
-                    delete[] ka;
-                    return result;
-                }
+                return true;
             }
         }
+        return false;
     }
 
 
@@ -57,7 +34,7 @@ namespace MolCpp
             {
                 _nbrs.push_back(edge->get_end());
             }
-            else
+            else if (edge->get_end() == this)
             {
                 _nbrs.push_back(edge->get_bgn());
             }
@@ -71,16 +48,19 @@ namespace MolCpp
     void Graph::add_node(Node* node)
     {
         _nodes.push_back(node);
+        node->set_parent(this);
     }
 
     void Graph::add_edge(Edge* edge)
     {
         _edges.push_back(edge);
+        edge->set_parent(this);
     }
 
     void Graph::add_subgraph(Graph* subgraph)
     {
         _subgraphs.push_back(subgraph);
+        subgraph->set_parent(this);
     }
 
     void Graph::del_node(Node* node)
@@ -122,13 +102,13 @@ namespace MolCpp
         std::array<size_t, 3> three_body;
         for (auto node : _nodes)
         {
-            if (node->get_nedges() > 2)
+            if (node->get_nedges() > 1)
             {
                 three_body[1] = get_local_index(node);
                 
                 for(auto nbr : node->get_neighbors())
                 {
-                    nbr_indices.push_back(get_local_index(node));
+                    nbr_indices.push_back(get_local_index(nbr));
                 }
 
                 auto combinations = combination(nbr_indices, 2);

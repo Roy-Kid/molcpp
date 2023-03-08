@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <array>
+#include <algo.h>
 
 namespace MolCpp
 {
@@ -22,6 +23,8 @@ namespace MolCpp
             int get_nedges() const { return _edges.size(); }
             void set_parent(Graph* parent) { _parent = parent; }
             EdgeVec get_edges() const { return _edges; }
+            void add_edge(Edge*);
+            bool has_edge(Edge*);
             NodeVec get_neighbors();
 
         protected:
@@ -35,7 +38,10 @@ namespace MolCpp
     {
         public:
             Edge(): _parent{nullptr}, _bgn{nullptr}, _end{nullptr} {}
-            Edge(Node* begin, Node* end): _parent{nullptr} {}
+            Edge(Node* begin, Node* end): _parent{nullptr} {
+                begin->add_edge(this);
+                end->add_edge(this);
+            }
             Node* get_bgn() const { return _bgn; }
             Node* get_end() const { return _end; }
             void set_parent(Graph* parent) { _parent = parent; }
@@ -60,6 +66,7 @@ namespace MolCpp
             size_t get_nnodes() const { return _nodes.size(); }
             size_t get_nedges() const { return _edges.size(); }
             size_t get_local_index(Node* node);
+            void set_parent(Graph* parent) { _parent = parent; }
 
             ThreeBodyIndex find_three_bodies();
 

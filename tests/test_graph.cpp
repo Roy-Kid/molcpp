@@ -21,4 +21,14 @@ TEST(TestGraph, test_init)
     EXPECT_EQ(graph.get_nnodes(), 3);
     EXPECT_EQ(graph.get_nedges(), 3);
 
+    EXPECT_EQ(graph.get_local_index(n1), 0);
+    EXPECT_EQ(graph.get_local_index(n2), 1);
+    EXPECT_EQ(graph.get_local_index(n3), 2);
+
+    EXPECT_EQ(n1->get_neighbors().size(), 2);
+    EXPECT_EQ(n2->get_neighbors().size(), 2);
+    EXPECT_EQ(n3->get_neighbors().size(), 2);
+
+    auto t = graph.find_three_bodies();
+    EXPECT_EQ(t.size(), 3);
 }

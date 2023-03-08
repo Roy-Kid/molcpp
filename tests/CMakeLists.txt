@@ -27,6 +27,7 @@ add_executable(
     # test_atom.cpp
     # test_io_utils.cpp
     test_frame.cpp
+    test_algo.cpp
 )
 
 target_link_libraries(
@@ -37,7 +38,7 @@ target_link_libraries(
 
 target_compile_options(molcpp_test
     PRIVATE
-        -O1
+        -O0
         -Wall
         -g
 )

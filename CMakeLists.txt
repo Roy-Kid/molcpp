@@ -37,6 +37,7 @@ target_sources(
   # src/trajectory.cpp
   src/topology.cpp
   src/frame.cpp
+  src/algo.cpp
 )
 
 target_link_libraries(
