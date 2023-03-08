@@ -25,7 +25,8 @@ add_executable(
     molcpp_test
     # test_graph.cpp
     # test_atom.cpp
-    test_io_utils.cpp
+    # test_io_utils.cpp
+    test_frame.cpp
 )
 
 target_link_libraries(

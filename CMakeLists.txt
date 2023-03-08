@@ -1,10 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(molcpp VERSION 0.0.1 LANGUAGES CXX)
+project(molcpp LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 14)
 
 # CMake helpers
-# include(CMakePrintHelpers)
+include(CMakePrintHelpers)
+# set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${PROJECT_SOURCE_DIR}/cmake")
 # cmake_print_variables(CMAKE_MODULE_PATH)
 
 # Set default build type to Release
@@ -14,17 +15,12 @@ endif()
 
 # Add dependencies
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/libs)
+
 add_subdirectory(${CMAKE_MODULE_PATH}/chemfiles)
+add_subdirectory(${CMAKE_MODULE_PATH}/xtl)
+add_subdirectory(${CMAKE_MODULE_PATH}/xtensor)
 
 add_library(molcpp)
-
-target_sources(
-  molcpp
-  PRIVATE
-  src/graph.cpp
-  src/atom.cpp
-  src/bond.cpp
-)
 
 target_include_directories(
   molcpp
@@ -32,10 +28,22 @@ target_include_directories(
   ${PROJECT_SOURCE_DIR}/include
 )
 
+target_sources(
+  molcpp
+  PRIVATE
+  # src/graph.cpp
+  src/atom.cpp
+  # src/bond.cpp
+  # src/trajectory.cpp
+  src/frame.cpp
+)
+
 target_link_libraries(
   molcpp
   PUBLIC
   chemfiles
+  xtl
+  xtensor
 )
 
 # For debug and test

@@ -1,8 +1,11 @@
 #ifndef ATOM_H
 #define ATOM_H
 
+#include <chemfiles.hpp>
 #include "graph.h"
 #include "bond.h"
+#include <string>
+#include <optional>
 
 namespace MolCpp
 {
@@ -10,15 +13,15 @@ namespace MolCpp
     class Atom: public Node
     {
         public:
-            Atom() {}
-
-        protected:
-
-            int _element;
-            char _type[]; 
+            Atom(const chemfiles::Atom&);
 
         private:
 
+            std::string _name;
+            std::string _type;
+            double _mass;
+            double _charge;
+            std::experimental::optional<uint64_t> _atomic_number;
     };
 
 }
