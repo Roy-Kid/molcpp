@@ -48,3 +48,27 @@ TEST(TestEdge, test_delete_Edge)
     EXPECT_EQ(n2->get_nedges(), 0);
 
 }
+
+TEST(TestGraph, test_subgraph_depth)
+{
+        auto subgraph = new MolCpp::Graph();
+        auto n1 = new MolCpp::Node();
+        auto n2 = new MolCpp::Node();
+        auto n3 = new MolCpp::Node();
+        subgraph->add_node(n1);
+        subgraph->add_node(n2);
+        subgraph->add_node(n3);
+        auto b1 = new MolCpp::Edge(n1, n2);
+        auto b2 = new MolCpp::Edge(n2, n3);
+        auto b3 = new MolCpp::Edge(n3, n1);
+        subgraph->add_edge(b1);
+        subgraph->add_edge(b2);
+        subgraph->add_edge(b3);
+
+        auto graph = new MolCpp::Graph();
+        graph->add_subgraph(subgraph);
+
+        EXPECT_EQ(graph->get_nnodes(), 3);
+        EXPECT_EQ(graph->get_nedges(), 3);
+
+}

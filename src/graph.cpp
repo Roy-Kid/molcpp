@@ -103,6 +103,28 @@ namespace MolCpp
         }
     }
 
+    size_t Graph::get_nnodes()
+    {
+
+        size_t nnodes = _nodes.size();
+        for (auto subgraph : _subgraphs)
+        {
+            nnodes += subgraph->get_nnodes();
+        }
+        return nnodes;
+
+    }
+
+    size_t Graph::get_nedges()
+    {
+        size_t nedges = _edges.size();
+        for (auto subgraph : _subgraphs)
+        {
+            nedges += subgraph->get_nedges();
+        }
+        return nedges;
+    }
+
     size_t Graph::get_local_index(Node* node)
     {
         for (auto i = 0; i < _nodes.size(); i++)

@@ -65,8 +65,8 @@ namespace MolCpp
             void add_subgraph(Graph*);
             void del_node(Node*);
             void del_edge(Edge*);
-            size_t get_nnodes() const { return _nodes.size(); }
-            size_t get_nedges() const { return _edges.size(); }
+            size_t get_nnodes();
+            size_t get_nedges();
             size_t get_local_index(Node* node);
             void set_parent(Graph* parent) { _parent = parent; }
 

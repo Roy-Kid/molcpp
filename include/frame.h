@@ -22,7 +22,6 @@ namespace MolCpp
             Topology get_topology() const { return _topology; }
 
         private:
-            // Topology
             // Cell
             size_t _current_step;
             Topology _topology;
