@@ -24,6 +24,17 @@ namespace MolCpp
         return false;
     }
 
+    void Node::del_edge(Edge* edge)
+    {
+        for (auto e : _edges)
+        {
+            if (e == edge)
+            {
+                _edges.erase(std::remove(_edges.begin(), _edges.end(), edge), _edges.end());
+            }
+        }
+    }
+
 
     NodeVec Node::get_neighbors()
     {
@@ -42,7 +53,17 @@ namespace MolCpp
         return _nbrs;
     }
 
-    
+    Edge::~Edge()
+    {
+        if (_bgn != nullptr)
+        {
+            _bgn->del_edge(this);
+        }
+        if (_end != nullptr)
+        {
+            _end->del_edge(this);
+        }
+    }
 
 
     void Graph::add_node(Node* node)
@@ -97,8 +118,8 @@ namespace MolCpp
 
     ThreeBodyIndex Graph::find_three_bodies()
     {
-        std::vector<size_t> nbr_indices;
         ThreeBodyIndex three_bodies;
+        std::vector<size_t> nbr_indices;
         std::array<size_t, 3> three_body;
         for (auto node : _nodes)
         {
@@ -120,6 +141,7 @@ namespace MolCpp
                 }
 
             }
+            nbr_indices.clear();
             
         }
 

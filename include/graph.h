@@ -25,6 +25,7 @@ namespace MolCpp
             EdgeVec get_edges() const { return _edges; }
             void add_edge(Edge*);
             bool has_edge(Edge*);
+            void del_edge(Edge*);
             NodeVec get_neighbors();
 
         protected:
@@ -38,10 +39,11 @@ namespace MolCpp
     {
         public:
             Edge(): _parent{nullptr}, _bgn{nullptr}, _end{nullptr} {}
-            Edge(Node* begin, Node* end): _parent{nullptr} {
+            Edge(Node* begin, Node* end):_parent{nullptr}, _bgn{begin}, _end{end} {
                 begin->add_edge(this);
                 end->add_edge(this);
             }
+            ~Edge();
             Node* get_bgn() const { return _bgn; }
             Node* get_end() const { return _end; }
             void set_parent(Graph* parent) { _parent = parent; }

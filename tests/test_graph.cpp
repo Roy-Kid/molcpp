@@ -32,3 +32,19 @@ TEST(TestGraph, test_init)
     auto t = graph.find_three_bodies();
     EXPECT_EQ(t.size(), 3);
 }
+
+TEST(TestEdge, test_delete_Edge)
+{
+
+    auto n1 = new MolCpp::Node();
+    auto n2 = new MolCpp::Node();
+    auto b1 = new MolCpp::Edge(n1, n2);
+
+    EXPECT_EQ(n1->get_nedges(), 1);
+    EXPECT_EQ(n2->get_nedges(), 1);
+
+    delete b1;
+    EXPECT_EQ(n1->get_nedges(), 0);
+    EXPECT_EQ(n2->get_nedges(), 0);
+
+}
