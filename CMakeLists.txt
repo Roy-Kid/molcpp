@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(molcpp LANGUAGES CXX)
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 # CMake helpers
 include(CMakePrintHelpers)
@@ -31,13 +31,13 @@ target_include_directories(
 target_sources(
   molcpp
   PRIVATE
+  src/algo.cpp
   src/graph.cpp
   src/atom.cpp
   src/bond.cpp
   # src/trajectory.cpp
   src/topology.cpp
   src/frame.cpp
-  src/algo.cpp
 )
 
 target_link_libraries(

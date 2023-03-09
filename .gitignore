@@ -36,6 +36,9 @@
 
 # temp
 build
+*.log
+a.out
+test.cpp
 
 # tests-data
 tests/tests-data

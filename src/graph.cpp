@@ -1,5 +1,5 @@
 #include "graph.h"
-#include <iostream>
+
 namespace MolCpp
 {
 
@@ -103,6 +103,28 @@ namespace MolCpp
         }
     }
 
+    NodeVec Graph::get_nodes()
+    {
+        NodeVec nodes = _nodes;
+        for (auto subgraph : _subgraphs)
+        {
+            NodeVec subnodes = subgraph->get_nodes();
+            nodes.insert(nodes.end(), subnodes.begin(), subnodes.end());
+        }
+        return nodes;
+    }
+
+    EdgeVec Graph::get_edges()
+    {
+        EdgeVec edges = _edges;
+        for (auto subgraph : _subgraphs)
+        {
+            EdgeVec subedges = subgraph->get_edges();
+            edges.insert(edges.end(), subedges.begin(), subedges.end());
+        }
+        return edges;
+    }
+
     size_t Graph::get_nnodes()
     {
 
@@ -127,15 +149,15 @@ namespace MolCpp
 
     size_t Graph::get_local_index(Node* node)
     {
-        for (auto i = 0; i < _nodes.size(); i++)
+        auto ans = find_in_container(get_nodes(), node);
+        if (ans.has_value())
         {
-            if (_nodes[i] == node)
-            {
-                return i;
-            }
+            return ans.value();
         }
-        throw std::invalid_argument("node not found in graph");
-        
+        else
+        {
+            throw std::runtime_error("Node not found in graph");
+        }
     }
 
     ThreeBodyIndex Graph::find_three_bodies()
@@ -143,7 +165,10 @@ namespace MolCpp
         ThreeBodyIndex three_bodies;
         std::vector<size_t> nbr_indices;
         std::array<size_t, 3> three_body;
-        for (auto node : _nodes)
+
+        auto nodes = get_nodes();
+
+        for (auto node : get_nodes())
         {
             if (node->get_nedges() > 1)
             {

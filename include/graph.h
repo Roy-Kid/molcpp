@@ -13,6 +13,7 @@ namespace MolCpp
     class Node;
     using NodeVec = std::vector<Node*>;
     using EdgeVec = std::vector<Edge*>;
+    using GraphVec = std::vector<Graph*>;
     using ThreeBodyIndex = std::vector<std::array<size_t, 3>>;
 
     class Node
@@ -65,6 +66,8 @@ namespace MolCpp
             void add_subgraph(Graph*);
             void del_node(Node*);
             void del_edge(Edge*);
+            NodeVec get_nodes();
+            EdgeVec get_edges();
             size_t get_nnodes();
             size_t get_nedges();
             size_t get_local_index(Node* node);
@@ -74,9 +77,9 @@ namespace MolCpp
 
         protected:
             Graph* _parent;
-            std::vector<Node*> _nodes;
-            std::vector<Edge*> _edges;
-            std::vector<Graph*> _subgraphs;
+            NodeVec _nodes;
+            EdgeVec _edges;
+            GraphVec _subgraphs;
 
     };
 
