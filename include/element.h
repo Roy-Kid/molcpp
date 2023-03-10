@@ -15,6 +15,8 @@ namespace MolCpp
         unsigned int get_atomic_number() const { return _atomicNumber; };
         std::string get_symbol() const { return _symbol; };
 
+        static const Element get_element(unsigned int atomicNumber);
+
     private:
         unsigned int _atomicNumber;
         std::string _symbol;

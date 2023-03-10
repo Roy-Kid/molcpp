@@ -9,4 +9,9 @@ namespace MolCpp
     {
         return *_elements.at(atomicNumber);
     }
+
+    const Element Element::get_element(unsigned int atomicNumber)
+    {
+        return *_elements.at(atomicNumber);
+    }
 }
