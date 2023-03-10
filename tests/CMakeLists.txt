@@ -26,6 +26,7 @@ add_executable(
     test_algo.cpp
     test_graph.cpp
     test_frame.cpp
+    test_parsmart.cpp
 )
 
 target_link_libraries(

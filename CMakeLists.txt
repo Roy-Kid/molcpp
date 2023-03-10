@@ -38,6 +38,7 @@ target_sources(
   # src/trajectory.cpp
   src/topology.cpp
   src/frame.cpp
+  src/parsmart.cpp
 )
 
 target_link_libraries(
