@@ -39,6 +39,8 @@ target_sources(
   src/topology.cpp
   src/frame.cpp
   src/parsmart.cpp
+  src/molecule.cpp
+  src/element.cpp
 )
 
 target_link_libraries(
@@ -51,6 +53,11 @@ target_link_libraries(
 
 # For debug and test
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
+  target_compile_options(molcpp
+      PUBLIC
+          -Wall
+          -g
+  )
   enable_testing()
   add_subdirectory(tests)
   

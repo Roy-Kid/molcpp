@@ -27,6 +27,7 @@ add_executable(
     test_graph.cpp
     test_frame.cpp
     test_parsmart.cpp
+    test_element.cpp
 )
 
 target_link_libraries(

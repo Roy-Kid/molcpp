@@ -14,11 +14,13 @@ namespace MolCpp
     {
         public:
             Atom(const chemfiles::Atom&);
+            Atom() = default;
 
         private:
 
             std::string _name;
             std::string _type;
+            std::string _ele;
             double _mass;
             double _charge;
             std::experimental::optional<uint64_t> _atomic_number;

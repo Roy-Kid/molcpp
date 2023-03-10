@@ -1407,7 +1407,7 @@ namespace MolCpp
     }
 
     Pattern *SmartsPattern::SMARTSParser(Pattern *pat, ParseState *stat,
-                                           int prev, int part)
+                                         int prev, int part)
     {
         int vb = 0;
         AtomExpr *aexpr;
@@ -1827,7 +1827,7 @@ namespace MolCpp
 
     // bool SmartsPattern::Match(OBMol &mol, bool single)
     // {
-    //     OBSmartsMatcher matcher;
+    //     SmartsMatcher matcher;
     //     if (_pat == nullptr)
     //         return false;
     //     if (_pat->hasExplicitH) // The SMARTS pattern contains [H]
@@ -1850,7 +1850,7 @@ namespace MolCpp
     // bool OBSmartsPattern::Match(OBMol &mol, std::vector<std::vector<int>> &mlist,
     //                             MatchType mtype /*=All*/) const
     // {
-    //     OBSmartsMatcher matcher;
+    //     SmartsMatcher matcher;
     //     mlist.clear();
     //     if (_pat == nullptr)
     //         return false;
@@ -1905,7 +1905,7 @@ namespace MolCpp
     //     std::vector<std::vector<int>>::iterator i;
     //     std::vector<std::pair<int, int>>::iterator j;
 
-    //     OBSmartsMatcher matcher;
+    //     SmartsMatcher matcher;
     //     matcher.match(mol, _pat, mlist);
     //     _mlist.clear();
     //     if (mlist.empty())
@@ -1934,7 +1934,7 @@ namespace MolCpp
     //     std::vector<std::vector<int>> mlist;
     //     std::vector<std::vector<int>>::iterator i;
 
-    //     OBSmartsMatcher matcher;
+    //     SmartsMatcher matcher;
     //     matcher.match(mol, _pat, mlist);
 
     //     _mlist.clear();
@@ -1961,7 +1961,7 @@ namespace MolCpp
     //     return ((_mlist.empty()) ? false : true);
     // }
 
-    // void OBSmartsMatcher::SetupAtomMatchTable(std::vector<std::vector<bool>> &ttab,
+    // void SmartsMatcher::SetupAtomMatchTable(std::vector<std::vector<bool>> &ttab,
     //                                           const Pattern *pat, OBMol &mol)
     // {
     //     int i;
@@ -1978,7 +1978,7 @@ namespace MolCpp
     //                 ttab[i][atom->GetIdx()] = true;
     // }
 
-    // void OBSmartsMatcher::FastSingleMatch(OBMol &mol, const Pattern *pat,
+    // void SmartsMatcher::FastSingleMatch(OBMol &mol, const Pattern *pat,
     //                                       std::vector<std::vector<int>> &mlist)
     // {
     //     OBAtom *atom, *a1, *nbr;
@@ -2069,7 +2069,7 @@ namespace MolCpp
     //         }
     // }
 
-    // bool OBSmartsMatcher::match(OBMol &mol, const Pattern *pat,
+    // bool SmartsMatcher::match(OBMol &mol, const Pattern *pat,
     //                             std::vector<std::vector<int>> &mlist, bool single)
     // {
     //     mlist.clear();
@@ -2084,7 +2084,7 @@ namespace MolCpp
     //     else
     //     {
     //         // perform normal match (chirality ignored and checked below)
-    //         OBSSMatch ssm(mol, pat);
+    //         SSMatch ssm(mol, pat);
     //         ssm.Match(mlist);
     //     }
 
@@ -2189,7 +2189,7 @@ namespace MolCpp
     //     return (!mlist.empty());
     // }
 
-    // bool OBSmartsMatcher::EvalAtomExpr(AtomExpr *expr, OBAtom *atom)
+    // bool SmartsMatcher::EvalAtomExpr(AtomExpr *expr, OBAtom *atom)
     // {
     //     for (;;)
     //         switch (expr->type)
@@ -2285,7 +2285,7 @@ namespace MolCpp
     //         }
     // }
 
-    // bool OBSmartsMatcher::EvalBondExpr(BondExpr *expr, OBBond *bond)
+    // bool SmartsMatcher::EvalBondExpr(BondExpr *expr, OBBond *bond)
     // {
     //     for (;;)
     //         switch (expr->type)
@@ -2381,12 +2381,12 @@ namespace MolCpp
     // }
 
     // //*******************************************************************
-    // //  The OBSSMatch class performs exhaustive matching using recursion
+    // //  The SSMatch class performs exhaustive matching using recursion
     // //  Explicit stack handling is used to find just a single match in
     // //  match()
     // //*******************************************************************
 
-    // OBSSMatch::OBSSMatch(OBMol &mol, const Pattern *pat)
+    // SSMatch::SSMatch(OBMol &mol, const Pattern *pat)
     // {
     //     _mol = &mol;
     //     _pat = pat;
@@ -2401,14 +2401,14 @@ namespace MolCpp
     //         _uatoms = nullptr;
     // }
 
-    // OBSSMatch::~OBSSMatch()
+    // SSMatch::~SSMatch()
     // {
     //     delete[] _uatoms;
     // }
 
-    // void OBSSMatch::Match(std::vector<std::vector<int>> &mlist, int bidx)
+    // void SSMatch::Match(std::vector<std::vector<int>> &mlist, int bidx)
     // {
-    //     OBSmartsMatcher matcher;
+    //     SmartsMatcher matcher;
     //     if (bidx == -1)
     //     {
     //         OBAtom *atom;
@@ -2633,6 +2633,53 @@ namespace MolCpp
     //         pos = j;
     //     }
     // }
+
+    //! \class SmartsMatcher parsmart.h <openbabel/parsmart.h>
+    //! \brief Internal class: performs matching; a wrapper around previous
+    //! C matching code to make it thread safe.
+    // class SmartsMatcher
+    // {
+    // protected:
+    //     // recursive smarts cache
+    //     std::vector<std::pair<const Pattern *, std::vector<bool>>> RSCACHE;
+    //     // list of fragment patterns (e.g., (*).(*)
+    //     std::vector<const Pattern *> Fragments;
+
+    //     bool EvalAtomExpr(AtomExpr *expr, OBAtom *atom);
+    //     bool EvalBondExpr(BondExpr *expr, OBBond *bond);
+    //     void SetupAtomMatchTable(std::vector<std::vector<bool>> &ttab,
+    //                              const Pattern *pat, OBMol &mol);
+    //     void FastSingleMatch(OBMol &mol, const Pattern *pat,
+    //                          std::vector<std::vector<int>> &mlist);
+
+    //     friend class SSMatch;
+
+    // public:
+    //     SmartsMatcher() {}
+    //     virtual ~SmartsMatcher() {}
+
+    //     bool match(OBMol &mol, const Pattern *pat, std::vector<std::vector<int>> &mlist, bool single = false);
+    // };
+
+    // //! \class SSMatch parsmart.h <openbabel/parsmart.h>
+    // //! \brief Internal class: performs fast, exhaustive matching used to find
+    // //! just a single match in match() using recursion and explicit stack handling.
+    // class SSMatch
+    // {
+    // protected:
+    //     bool *_uatoms;
+    //     OBMol *_mol;
+    //     const Pattern *_pat;
+    //     std::vector<int> _map;
+
+    // public:
+    //     SSMatch(OBMol &, const Pattern *);
+    //     ~SSMatch();
+    //     void Match(std::vector<std::vector<int>> &v, int bidx = -1);
+    // };
+
+    // void SmartsLexReplace(std::string &,
+    //                             std::vector<std::pair<std::string, std::string>> &);
 
 } // end namespace OpenBabel
 

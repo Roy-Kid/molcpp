@@ -16,6 +16,21 @@ TEST(TestParsmart, test_AE_TRUE) {
 
 }
 
+TEST(TestParsmart, test_ccc) {
+    std::string s = "ccc";
+
+    MolCpp::SmartsPattern sp;
+    bool isValid = sp.Init(s);
+    EXPECT_TRUE(isValid);
+
+    MolCpp::Pattern* p = sp.GetPattern();
+
+    EXPECT_EQ(p->acount, 3);
+    EXPECT_EQ(p->bcount, 2);
+    EXPECT_EQ(p->atom->expr->type, 14);
+
+}
+
 // TEST(TestParsmart, test_C1CCCCC1) {
 
 //     std::string s = "[c1ccccc1]";
