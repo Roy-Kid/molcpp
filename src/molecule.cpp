@@ -35,14 +35,11 @@ namespace MolCpp
         }
         */
         if (whichHydrogen == AllHydrogen)
-            obErrorLog.ThrowError(__FUNCTION__,
-                                  "Ran OpenBabel::AddHydrogens", obAuditMsg);
+            LOG_INFO("Adding hydrogens to molecule");
         else if (whichHydrogen == PolarHydrogen)
-            obErrorLog.ThrowError(__FUNCTION__,
-                                  "Ran OpenBabel::AddHydrogens -- polar only", obAuditMsg);
+            LOG_INFO("Adding polar hydrogens to molecule");
         else
-            obErrorLog.ThrowError(__FUNCTION__,
-                                  "Ran OpenBabel::AddHydrogens -- nonpolar only", obAuditMsg);
+            LOG_INFO("Adding non-polar hydrogens to molecule");
 
         // Make sure we have conformers (PR#1665519)
         if (!_vconf.empty() && !Empty())

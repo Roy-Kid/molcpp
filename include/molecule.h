@@ -6,6 +6,7 @@
 #include "atom.h"
 #include "bond.h"
 #include "utils.h"
+#include "mplog.h"
 
 namespace MolCpp
 {
