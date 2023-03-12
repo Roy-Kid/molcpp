@@ -3,7 +3,7 @@
 namespace MolCpp
 {
 
-    /*! \class OBSmartsPattern parsmart.h <openbabel/parsmart.h>
+    /*! \class SmartsPattern parsmart.h <openbabel/parsmart.h>
 
       Substructure search is an incredibly useful tool in the context of a
       small molecule programming library. Having an efficient substructure
@@ -21,13 +21,13 @@ namespace MolCpp
       For more information on the SMARTS support in Open Babel, see the wiki page:
       http://openbabel.org/wiki/SMARTS
 
-      The SMARTS matcher, or OBSmartsPattern, is a separate object which can
-      match patterns in the OBMol class. The following code demonstrates how
-      to use the OBSmartsPattern class:
+      The SMARTS matcher, or SmartsPattern, is a separate object which can
+      match patterns in the Molecule class. The following code demonstrates how
+      to use the SmartsPattern class:
       \code
-      OBMol mol;
+      Molecule mol;
       ...
-      OBSmartsPattern sp;
+      SmartsPattern sp;
       sp.Init("CC");
       sp.Match(mol);
       vector<vector<int> > maplist;
@@ -48,7 +48,7 @@ namespace MolCpp
       of two single-bonded carbons, and locates all instances of the
       pattern in the molecule. Note that calling the Match() function
       does not return the results of the substructure match. The results
-      from a match are stored in the OBSmartsPattern, and a call to
+      from a match are stored in the SmartsPattern, and a call to
       GetMapList() or GetUMapList() must be made to extract the
       results. The function GetMapList() returns all matches of a
       particular pattern while GetUMapList() returns only the unique
@@ -1636,7 +1636,7 @@ namespace MolCpp
     static void MarkGrowBonds(Pattern *pat)
     {
         int i;
-        std::bitset<8> bv;
+        bitset bv;
 
         for (i = 0; i < pat->bcount; ++i)
         {
@@ -1825,861 +1825,861 @@ namespace MolCpp
         delete[] _buffer;
     }
 
-    // bool SmartsPattern::Match(OBMol &mol, bool single)
-    // {
-    //     SmartsMatcher matcher;
-    //     if (_pat == nullptr)
-    //         return false;
-    //     if (_pat->hasExplicitH) // The SMARTS pattern contains [H]
-    //     {
-    //         // Do matching on a copy of mol with explicit hydrogens
-    //         OBMol tmol = mol;
-    //         tmol.AddHydrogens(false, false);
-    //         return (matcher.match(tmol, _pat, _mlist, single));
-    //     }
-    //     return (matcher.match(mol, _pat, _mlist, single));
-    // }
-
-    // bool OBSmartsPattern::HasMatch(OBMol &mol) const
-    // {
-    //     // a convenience function
-    //     std::vector<std::vector<int>> dummy;
-    //     return Match(mol, dummy, Single);
-    // }
-
-    // bool OBSmartsPattern::Match(OBMol &mol, std::vector<std::vector<int>> &mlist,
-    //                             MatchType mtype /*=All*/) const
-    // {
-    //     SmartsMatcher matcher;
-    //     mlist.clear();
-    //     if (_pat == nullptr)
-    //         return false;
-    //     if (_pat->hasExplicitH) // The SMARTS pattern contains [H]
-    //     {
-    //         // Do matching on a copy of mol with explicit hydrogens
-    //         OBMol tmol = mol;
-    //         tmol.AddHydrogens(false, false);
-    //         if (!matcher.match(tmol, _pat, mlist, mtype == Single))
-    //             return false;
-    //     }
-    //     else if (!matcher.match(mol, _pat, mlist, mtype == Single))
-    //         return false;
-
-    //     if ((mtype == AllUnique) && mlist.size() > 1)
-    //     {
-    //         // uniquify
-    //         bool ok;
-    //         OBBitVec bv;
-    //         std::vector<OBBitVec> vbv;
-    //         std::vector<std::vector<int>> ulist;
-    //         std::vector<std::vector<int>>::iterator i;
-    //         std::vector<OBBitVec>::iterator j;
-
-    //         for (i = mlist.begin(); i != mlist.end(); ++i)
-    //         {
-    //             ok = true;
-    //             bv.Clear();
-    //             bv.FromVecInt(*i);
-    //             for (j = vbv.begin(); j != vbv.end() && ok; ++j)
-    //                 if ((*j) == bv)
-    //                     ok = false;
-
-    //             if (ok)
-    //             {
-    //                 ulist.push_back(*i);
-    //                 vbv.push_back(bv);
-    //             }
-    //         }
-
-    //         mlist = ulist;
-    //     }
-    //     return true;
-    // }
-
-    // bool OBSmartsPattern::RestrictedMatch(OBMol &mol,
-    //                                       std::vector<std::pair<int, int>> &pr,
-    //                                       bool single)
-    // {
-    //     bool ok;
-    //     std::vector<std::vector<int>> mlist;
-    //     std::vector<std::vector<int>>::iterator i;
-    //     std::vector<std::pair<int, int>>::iterator j;
-
-    //     SmartsMatcher matcher;
-    //     matcher.match(mol, _pat, mlist);
-    //     _mlist.clear();
-    //     if (mlist.empty())
-    //         return (false);
-
-    //     for (i = mlist.begin(); i != mlist.end(); ++i)
-    //     {
-    //         ok = true;
-    //         for (j = pr.begin(); j != pr.end() && ok; ++j)
-    //             if ((*i)[j->first] != j->second)
-    //                 ok = false;
-
-    //         if (ok)
-    //             _mlist.push_back(*i);
-    //         if (single && !_mlist.empty())
-    //             return (true);
-    //     }
-
-    //     return ((_mlist.empty()) ? false : true);
-    // }
-
-    // bool OBSmartsPattern::RestrictedMatch(OBMol &mol, OBBitVec &vres, bool single)
-    // {
-    //     bool ok;
-    //     std::vector<int>::iterator j;
-    //     std::vector<std::vector<int>> mlist;
-    //     std::vector<std::vector<int>>::iterator i;
-
-    //     SmartsMatcher matcher;
-    //     matcher.match(mol, _pat, mlist);
-
-    //     _mlist.clear();
-    //     if (mlist.empty())
-    //         return (false);
-
-    //     for (i = mlist.begin(); i != mlist.end(); ++i)
-    //     {
-    //         ok = true;
-    //         for (j = i->begin(); j != i->end(); ++j)
-    //             if (!vres[*j])
-    //             {
-    //                 ok = false;
-    //                 break;
-    //             }
-    //         if (!ok)
-    //             continue;
-
-    //         _mlist.push_back(*i);
-    //         if (single && !_mlist.empty())
-    //             return (true);
-    //     }
-
-    //     return ((_mlist.empty()) ? false : true);
-    // }
-
-    // void SmartsMatcher::SetupAtomMatchTable(std::vector<std::vector<bool>> &ttab,
-    //                                           const Pattern *pat, OBMol &mol)
-    // {
-    //     int i;
-
-    //     ttab.resize(pat->acount);
-    //     for (i = 0; i < pat->acount; ++i)
-    //         ttab[i].resize(mol.NumAtoms() + 1);
-
-    //     OBAtom *atom;
-    //     std::vector<OBAtom *>::iterator j;
-    //     for (i = 0; i < pat->acount; ++i)
-    //         for (atom = mol.BeginAtom(j); atom; atom = mol.NextAtom(j))
-    //             if (EvalAtomExpr(pat->atom[0].expr, atom))
-    //                 ttab[i][atom->GetIdx()] = true;
-    // }
-
-    // void SmartsMatcher::FastSingleMatch(OBMol &mol, const Pattern *pat,
-    //                                       std::vector<std::vector<int>> &mlist)
-    // {
-    //     OBAtom *atom, *a1, *nbr;
-    //     std::vector<OBAtom *>::iterator i;
-
-    //     OBBitVec bv(mol.NumAtoms() + 1);
-    //     std::vector<int> map;
-    //     map.resize(pat->acount);
-    //     std::vector<std::vector<OBBond *>::iterator> vi;
-    //     std::vector<bool> vif;
-
-    //     if (pat->bcount)
-    //     {
-    //         vif.resize(pat->bcount);
-    //         vi.resize(pat->bcount);
-    //     }
-
-    //     int bcount;
-    //     for (atom = mol.BeginAtom(i); atom; atom = mol.NextAtom(i))
-    //         if (EvalAtomExpr(pat->atom[0].expr, atom))
-    //         {
-    //             map[0] = atom->GetIdx();
-    //             if (pat->bcount)
-    //                 vif[0] = false;
-    //             bv.Clear();
-    //             bv.SetBitOn(atom->GetIdx());
-
-    //             for (bcount = 0; bcount >= 0;)
-    //             {
-    //                 //***entire pattern matched***
-    //                 if (bcount == pat->bcount) // save full match here
-    //                 {
-    //                     mlist.push_back(map);
-    //                     bcount--;
-    //                     return; // found a single match
-    //                 }
-
-    //                 //***match the next bond***
-    //                 if (!pat->bond[bcount].grow) // just check bond here
-    //                 {
-    //                     if (!vif[bcount])
-    //                     {
-    //                         OBBond *bond = mol.GetBond(map[pat->bond[bcount].src],
-    //                                                    map[pat->bond[bcount].dst]);
-    //                         if (bond && EvalBondExpr(pat->bond[bcount].expr, bond))
-    //                         {
-    //                             vif[bcount++] = true;
-    //                             if (bcount < pat->bcount)
-    //                                 vif[bcount] = false;
-    //                         }
-    //                         else
-    //                             bcount--;
-    //                     }
-    //                     else // bond must have already been visited - backtrack
-    //                         bcount--;
-    //                 }
-    //                 else // need to map atom and check bond
-    //                 {
-    //                     a1 = mol.GetAtom(map[pat->bond[bcount].src]);
-
-    //                     if (!vif[bcount]) // figure out which nbr atom we are mapping
-    //                     {
-    //                         nbr = a1->BeginNbrAtom(vi[bcount]);
-    //                     }
-    //                     else
-    //                     {
-    //                         bv.SetBitOff(map[pat->bond[bcount].dst]);
-    //                         nbr = a1->NextNbrAtom(vi[bcount]);
-    //                     }
-
-    //                     for (; nbr; nbr = a1->NextNbrAtom(vi[bcount]))
-    //                         if (!bv[nbr->GetIdx()])
-    //                             if (EvalAtomExpr(pat->atom[pat->bond[bcount].dst].expr, nbr) && EvalBondExpr(pat->bond[bcount].expr, (OBBond *)*(vi[bcount])))
-    //                             {
-    //                                 bv.SetBitOn(nbr->GetIdx());
-    //                                 map[pat->bond[bcount].dst] = nbr->GetIdx();
-    //                                 vif[bcount] = true;
-    //                                 bcount++;
-    //                                 if (bcount < pat->bcount)
-    //                                     vif[bcount] = false;
-    //                                 break;
-    //                             }
-
-    //                     if (!nbr) // no match - time to backtrack
-    //                         bcount--;
-    //                 }
-    //             }
-    //         }
-    // }
-
-    // bool SmartsMatcher::match(OBMol &mol, const Pattern *pat,
-    //                             std::vector<std::vector<int>> &mlist, bool single)
-    // {
-    //     mlist.clear();
-    //     if (!pat || pat->acount == 0)
-    //         return (false); // shouldn't ever happen
-
-    //     if (single && !pat->ischiral)
-    //     {
-    //         // perform a fast single match (only works for non-chiral SMARTS)
-    //         FastSingleMatch(mol, pat, mlist);
-    //     }
-    //     else
-    //     {
-    //         // perform normal match (chirality ignored and checked below)
-    //         SSMatch ssm(mol, pat);
-    //         ssm.Match(mlist);
-    //     }
-
-    //     if (pat->ischiral)
-    //     {
-    //         std::vector<std::vector<int>>::iterator m;
-    //         std::vector<std::vector<int>> tmpmlist;
-
-    //         tmpmlist.clear();
-    //         // iterate over the atom mappings
-    //         for (m = mlist.begin(); m != mlist.end(); ++m)
-    //         {
-
-    //             bool allStereoCentersMatch = true;
-
-    //             // for each pattern atom
-    //             for (int j = 0; j < pat->acount; ++j)
-    //             {
-    //                 // skip non-chiral pattern atoms
-    //                 if (!pat->atom[j].chiral_flag)
-    //                     continue;
-    //                 // ignore @? in smarts, parse like any other smarts
-    //                 if (pat->atom[j].chiral_flag == AL_UNSPECIFIED)
-    //                     continue;
-
-    //                 // use the mapping the get the chiral atom in the molecule being queried
-    //                 OBAtom *center = mol.GetAtom((*m)[j]);
-
-    //                 // get the OBTetrahedralStereo::Config from the molecule
-    //                 OBStereoFacade stereo(&mol);
-    //                 OBTetrahedralStereo *ts = stereo.GetTetrahedralStereo(center->GetId());
-    //                 if (!ts || !ts->GetConfig().specified)
-    //                 {
-    //                     // no stereochemistry specified in molecule for the atom
-    //                     // corresponding to the chiral pattern atom using the current
-    //                     // mapping --> no match
-    //                     allStereoCentersMatch = false;
-    //                     break;
-    //                 }
-
-    //                 std::vector<int> nbrs = pat->atom[j].nbrs;
-
-    //                 if (nbrs.size() != 4)
-    //                 { // 3 nbrs currently not supported. Other values are errors.
-    //                     // stringstream ss;
-    //                     // ss << "Ignoring stereochemistry. There are " << nbrs.size() << " connections to this atom instead of 4. Title: " << mol.GetTitle();
-    //                     // obErrorLog.ThrowError(__FUNCTION__, ss.str(), obWarning);
-    //                     continue;
-    //                 }
-
-    //                 // construct a OBTetrahedralStereo::Config using the smarts pattern
-    //                 OBTetrahedralStereo::Config smartsConfig;
-    //                 smartsConfig.center = center->GetId();
-    //                 if (nbrs.at(0) == SmartsImplicitRef)
-    //                     smartsConfig.from = OBStereo::ImplicitRef;
-    //                 else
-    //                     smartsConfig.from = mol.GetAtom((*m)[nbrs.at(0)])->GetId();
-    //                 OBStereo::Ref firstref;
-    //                 if (nbrs.at(1) == SmartsImplicitRef)
-    //                     firstref = OBStereo::ImplicitRef;
-    //                 else
-    //                     firstref = mol.GetAtom((*m)[nbrs.at(1)])->GetId();
-    //                 OBAtom *ra2 = mol.GetAtom((*m)[nbrs.at(2)]);
-    //                 OBAtom *ra3 = mol.GetAtom((*m)[nbrs.at(3)]);
-    //                 smartsConfig.refs = OBStereo::MakeRefs(firstref, ra2->GetId(), ra3->GetId());
-
-    //                 smartsConfig.view = OBStereo::ViewFrom;
-    //                 switch (pat->atom[j].chiral_flag)
-    //                 {
-    //                 case AL_CLOCKWISE:
-    //                     smartsConfig.winding = OBStereo::Clockwise;
-    //                     break;
-    //                 case AL_ANTICLOCKWISE:
-    //                     smartsConfig.winding = OBStereo::AntiClockwise;
-    //                     break;
-    //                 default:
-    //                     smartsConfig.specified = false;
-    //                 }
-
-    //                 // cout << "smarts config = " << smartsConfig << endl;
-    //                 // cout << "molecule config = " << ts->GetConfig() << endl;
-    //                 // cout << "match = " << (ts->GetConfig() == smartsConfig) << endl;
-
-    //                 // and save the match if the two configurations are the same
-    //                 if (ts->GetConfig() != smartsConfig)
-    //                     allStereoCentersMatch = false;
-
-    //                 // don't waste time checking more stereocenters using this mapping if one didn't match
-    //                 if (!allStereoCentersMatch)
-    //                     break;
-    //             }
-
-    //             // if all the atoms in the molecule match the stereochemistry specified
-    //             // in the smarts pattern, save this mapping as a match
-    //             if (allStereoCentersMatch)
-    //                 tmpmlist.push_back(*m);
-    //         }
-
-    //         mlist = tmpmlist;
-    //     }
-
-    //     return (!mlist.empty());
-    // }
-
-    // bool SmartsMatcher::EvalAtomExpr(AtomExpr *expr, OBAtom *atom)
-    // {
-    //     for (;;)
-    //         switch (expr->type)
-    //         {
-    //         case AE_TRUE:
-    //             return true;
-    //         case AE_FALSE:
-    //             return false;
-    //         case AE_AROMATIC:
-    //             return atom->IsAromatic();
-    //         case AE_ALIPHATIC:
-    //             return !atom->IsAromatic();
-    //         case AE_CYCLIC:
-    //             return atom->IsInRing();
-    //         case AE_ACYCLIC:
-    //             return !atom->IsInRing();
-
-    //         case AE_MASS:
-    //             return expr->leaf.value == atom->GetIsotope();
-    //         case AE_ELEM:
-    //             return expr->leaf.value == (int)atom->GetAtomicNum();
-    //         case AE_AROMELEM:
-    //             return expr->leaf.value == (int)atom->GetAtomicNum() &&
-    //                    atom->IsAromatic();
-    //         case AE_ALIPHELEM:
-    //             return expr->leaf.value == (int)atom->GetAtomicNum() &&
-    //                    !atom->IsAromatic();
-    //         case AE_HCOUNT:
-    //             return expr->leaf.value == ((int)atom->ExplicitHydrogenCount() +
-    //                                         (int)atom->GetImplicitHCount());
-    //         case AE_CHARGE:
-    //             return expr->leaf.value == atom->GetFormalCharge();
-    //         case AE_CONNECT:
-    //             return expr->leaf.value == (int)atom->GetTotalDegree();
-    //         case AE_DEGREE:
-    //             return expr->leaf.value == (int)atom->GetExplicitDegree();
-    //         case AE_IMPLICIT:
-    //             return expr->leaf.value == (int)atom->GetImplicitHCount();
-    //         case AE_RINGS:
-    //             return expr->leaf.value == (int)atom->MemberOfRingCount();
-    //         case AE_SIZE:
-    //             return atom->IsInRingSize(expr->leaf.value);
-    //         case AE_VALENCE:
-    //             return expr->leaf.value == (int)atom->GetTotalValence();
-    //         case AE_CHIRAL:
-    //             // always return true (i.e. accept the match) and check later
-    //             return true;
-    //         case AE_HYB:
-    //             return expr->leaf.value == (int)atom->GetHyb();
-    //         case AE_RINGCONNECT:
-    //             return expr->leaf.value == (int)atom->CountRingBonds();
-
-    //         case AE_NOT:
-    //             return !EvalAtomExpr(expr->mon.arg, atom);
-    //         case AE_ANDHI: /* Same as AE_ANDLO */
-    //         case AE_ANDLO:
-    //             if (!EvalAtomExpr(expr->bin.lft, atom))
-    //                 return false;
-    //             expr = expr->bin.rgt;
-    //             break;
-    //         case AE_OR:
-    //             if (EvalAtomExpr(expr->bin.lft, atom))
-    //                 return true;
-    //             expr = expr->bin.rgt;
-    //             break;
-
-    //         case AE_RECUR:
-    //         {
-    //             // see if pattern has been matched
-    //             std::vector<std::pair<const Pattern *, std::vector<bool>>>::iterator i;
-    //             for (i = RSCACHE.begin(); i != RSCACHE.end(); ++i)
-    //                 if (i->first == (Pattern *)expr->recur.recur)
-    //                     return (i->second[atom->GetIdx()]);
-
-    //             // perceive and match pattern
-    //             std::vector<std::vector<int>>::iterator j;
-    //             std::vector<bool> vb(((OBMol *)atom->GetParent())->NumAtoms() + 1);
-    //             std::vector<std::vector<int>> mlist;
-    //             if (match(*((OBMol *)atom->GetParent()),
-    //                       (Pattern *)expr->recur.recur, mlist))
-    //                 for (j = mlist.begin(); j != mlist.end(); ++j)
-    //                     vb[(*j)[0]] = true;
-
-    //             RSCACHE.push_back(std::pair<const Pattern *,
-    //                                         std::vector<bool>>((const Pattern *)expr->recur.recur,
-    //                                                            vb));
-
-    //             return (vb[atom->GetIdx()]);
-    //         }
-
-    //         default:
-    //             return false;
-    //         }
-    // }
-
-    // bool SmartsMatcher::EvalBondExpr(BondExpr *expr, OBBond *bond)
-    // {
-    //     for (;;)
-    //         switch (expr->type)
-    //         {
-    //         case BE_ANDHI:
-    //         case BE_ANDLO:
-    //             if (!EvalBondExpr(expr->bin.lft, bond))
-    //                 return false;
-    //             expr = expr->bin.rgt;
-    //             break;
-
-    //         case BE_OR:
-    //             if (EvalBondExpr(expr->bin.lft, bond))
-    //                 return true;
-    //             expr = expr->bin.rgt;
-    //             break;
-
-    //         case BE_NOT:
-    //             return !EvalBondExpr(expr->mon.arg, bond);
-
-    //         case BE_ANY:
-    //             return true;
-    //         case BE_DEFAULT:
-    //             return bond->GetBondOrder() == 1 || bond->IsAromatic();
-    //         case BE_SINGLE:
-    //             return bond->GetBondOrder() == 1 && !bond->IsAromatic();
-    //         case BE_DOUBLE:
-    //             return bond->GetBondOrder() == 2 && !bond->IsAromatic();
-    //         case BE_TRIPLE:
-    //             return bond->GetBondOrder() == 3;
-    //         case BE_QUAD:
-    //             return bond->GetBondOrder() == 4;
-    //         case BE_AROM:
-    //             return bond->IsAromatic();
-    //         case BE_RING:
-    //             return bond->IsInRing();
-    //         // case BE_UP:
-    //         //   return bond->IsUp();
-    //         // case BE_DOWN:
-    //         //   return bond->IsDown();
-    //         // case BE_UPUNSPEC: // up or unspecified (i.e., not down)
-    //         //   return !bond->IsDown();
-    //         // case BE_DOWNUNSPEC: // down or unspecified (i.e., not up)
-    //         //   return !bond->IsUp();
-    //         default:
-    //             return false;
-    //         }
-    // }
-
-    // std::vector<std::vector<int>> &OBSmartsPattern::GetUMapList()
-    // {
-    //     if (_mlist.empty() || _mlist.size() == 1)
-    //         return (_mlist);
-
-    //     bool ok;
-    //     OBBitVec bv;
-    //     std::vector<OBBitVec> vbv;
-    //     std::vector<std::vector<int>> mlist;
-    //     std::vector<std::vector<int>>::iterator i;
-    //     std::vector<OBBitVec>::iterator j;
-
-    //     for (i = _mlist.begin(); i != _mlist.end(); ++i)
-    //     {
-    //         ok = true;
-    //         bv.Clear();
-    //         bv.FromVecInt(*i);
-    //         for (j = vbv.begin(); j != vbv.end() && ok; ++j)
-    //             if ((*j) == bv)
-    //                 ok = false;
-
-    //         if (ok)
-    //         {
-    //             mlist.push_back(*i);
-    //             vbv.push_back(bv);
-    //         }
-    //     }
-
-    //     _mlist = mlist;
-    //     return (_mlist);
-    // }
-
-    // void OBSmartsPattern::WriteMapList(ostream &ofs)
-    // {
-    //     std::vector<std::vector<int>>::iterator i;
-    //     std::vector<int>::iterator j;
-
-    //     for (i = _mlist.begin(); i != _mlist.end(); ++i)
-    //     {
-    //         for (j = (*i).begin(); j != (*i).end(); ++j)
-    //             ofs << *j << ' ' << ends;
-    //         ofs << endl;
-    //     }
-    // }
-
-    // //*******************************************************************
-    // //  The SSMatch class performs exhaustive matching using recursion
-    // //  Explicit stack handling is used to find just a single match in
-    // //  match()
-    // //*******************************************************************
-
-    // SSMatch::SSMatch(OBMol &mol, const Pattern *pat)
-    // {
-    //     _mol = &mol;
-    //     _pat = pat;
-    //     _map.resize(pat->acount);
-
-    //     if (!mol.Empty())
-    //     {
-    //         _uatoms = new bool[mol.NumAtoms() + 1];
-    //         memset((char *)_uatoms, '\0', sizeof(bool) * (mol.NumAtoms() + 1));
-    //     }
-    //     else
-    //         _uatoms = nullptr;
-    // }
-
-    // SSMatch::~SSMatch()
-    // {
-    //     delete[] _uatoms;
-    // }
-
-    // void SSMatch::Match(std::vector<std::vector<int>> &mlist, int bidx)
-    // {
-    //     SmartsMatcher matcher;
-    //     if (bidx == -1)
-    //     {
-    //         OBAtom *atom;
-    //         std::vector<OBAtom *>::iterator i;
-    //         for (atom = _mol->BeginAtom(i); atom; atom = _mol->NextAtom(i))
-    //             if (matcher.EvalAtomExpr(_pat->atom[0].expr, atom))
-    //             {
-    //                 _map[0] = atom->GetIdx();
-    //                 _uatoms[atom->GetIdx()] = true;
-    //                 Match(mlist, 0);
-    //                 _map[0] = 0;
-    //                 _uatoms[atom->GetIdx()] = false;
-    //             }
-    //         return;
-    //     }
-
-    //     if (bidx == _pat->bcount) // save full match here
-    //     {
-    //         mlist.push_back(_map);
-    //         return;
-    //     }
-
-    //     if (_pat->bond[bidx].grow) // match the next bond
-    //     {
-    //         int src = _pat->bond[bidx].src;
-    //         int dst = _pat->bond[bidx].dst;
-
-    //         if (_map[src] <= 0 || _map[src] > (signed)_mol->NumAtoms())
-    //             return;
-
-    //         AtomExpr *aexpr = _pat->atom[dst].expr;
-    //         BondExpr *bexpr = _pat->bond[bidx].expr;
-    //         OBAtom *atom, *nbr;
-    //         std::vector<OBBond *>::iterator i;
-
-    //         atom = _mol->GetAtom(_map[src]);
-    //         for (nbr = atom->BeginNbrAtom(i); nbr; nbr = atom->NextNbrAtom(i))
-    //             if (!_uatoms[nbr->GetIdx()] && matcher.EvalAtomExpr(aexpr, nbr) &&
-    //                 matcher.EvalBondExpr(bexpr, ((OBBond *)*i)))
-    //             {
-    //                 _map[dst] = nbr->GetIdx();
-    //                 _uatoms[nbr->GetIdx()] = true;
-    //                 Match(mlist, bidx + 1);
-    //                 _uatoms[nbr->GetIdx()] = false;
-    //                 _map[dst] = 0;
-    //             }
-    //     }
-    //     else // just check bond here
-    //     {
-    //         OBBond *bond = _mol->GetBond(_map[_pat->bond[bidx].src],
-    //                                      _map[_pat->bond[bidx].dst]);
-    //         if (bond && matcher.EvalBondExpr(_pat->bond[bidx].expr, bond))
-    //             Match(mlist, bidx + 1);
-    //     }
-    // }
-
-    // static int GetExprOrder(BondExpr *expr)
-    // {
-    //     int tmp1, tmp2;
-
-    //     switch (expr->type)
-    //     {
-    //     case BE_SINGLE:
-    //         return 1;
-    //     case BE_DOUBLE:
-    //         return 2;
-    //     case BE_TRIPLE:
-    //         return 3;
-    //     case BE_QUAD:
-    //         return 4;
-    //     case BE_AROM:
-    //         return 5;
-
-    //     case BE_UP:
-    //     case BE_DOWN:
-    //     case BE_UPUNSPEC:
-    //     case BE_DOWNUNSPEC:
-    //         return 1;
-
-    //     case BE_ANDHI:
-    //     case BE_ANDLO:
-    //         tmp1 = GetExprOrder(expr->bin.lft);
-    //         tmp2 = GetExprOrder(expr->bin.rgt);
-    //         if (tmp1 == 0)
-    //             return tmp2;
-    //         if (tmp2 == 0)
-    //             return tmp1;
-    //         if (tmp1 == tmp2)
-    //             return tmp1;
-    //         break;
-
-    //     case BE_OR:
-    //         tmp1 = GetExprOrder(expr->bin.lft);
-    //         if (tmp1 == 0)
-    //             return 0;
-    //         tmp2 = GetExprOrder(expr->bin.rgt);
-    //         if (tmp2 == 0)
-    //             return 0;
-    //         if (tmp1 == tmp2)
-    //             return tmp1;
-    //         break;
-    //     }
-
-    //     return 0;
-    // }
-
-    // static int GetExprCharge(AtomExpr *expr)
-    // {
-    //     int tmp1, tmp2;
-
-    //     switch (expr->type)
-    //     {
-    //     case AE_CHARGE:
-    //         return expr->leaf.value;
-
-    //     case AE_ANDHI:
-    //     case AE_ANDLO:
-    //         tmp1 = GetExprCharge(expr->bin.lft);
-    //         tmp2 = GetExprCharge(expr->bin.rgt);
-    //         if (tmp1 == 0)
-    //             return tmp2;
-    //         if (tmp2 == 0)
-    //             return tmp1;
-    //         if (tmp1 == tmp2)
-    //             return tmp1;
-    //         break;
-
-    //     case AE_OR:
-    //         tmp1 = GetExprCharge(expr->bin.lft);
-    //         if (tmp1 == 0)
-    //             return 0;
-    //         tmp2 = GetExprCharge(expr->bin.rgt);
-    //         if (tmp2 == 0)
-    //             return 0;
-    //         if (tmp1 == tmp2)
-    //             return tmp1;
-    //         break;
-    //     }
-
-    //     return 0;
-    // }
-
-    // int OBSmartsPattern::GetCharge(int idx)
-    // {
-    //     return GetExprCharge(_pat->atom[idx].expr);
-    // }
-
-    // static int GetExprAtomicNum(AtomExpr *expr)
-    // {
-    //     int tmp1, tmp2;
-
-    //     switch (expr->type)
-    //     {
-    //     case AE_ELEM:
-    //     case AE_AROMELEM:
-    //     case AE_ALIPHELEM:
-    //         return expr->leaf.value;
-
-    //     case AE_ANDHI:
-    //     case AE_ANDLO:
-    //         tmp1 = GetExprAtomicNum(expr->bin.lft);
-    //         tmp2 = GetExprAtomicNum(expr->bin.rgt);
-    //         if (tmp1 == 0)
-    //             return tmp2;
-    //         if (tmp2 == 0)
-    //             return tmp1;
-    //         if (tmp1 == tmp2)
-    //             return tmp1;
-    //         break;
-
-    //     case AE_OR:
-    //         tmp1 = GetExprAtomicNum(expr->bin.lft);
-    //         if (tmp1 == 0)
-    //             return 0;
-    //         tmp2 = GetExprAtomicNum(expr->bin.rgt);
-    //         if (tmp2 == 0)
-    //             return 0;
-    //         if (tmp1 == tmp2)
-    //             return tmp1;
-    //         break;
-    //     }
-
-    //     return 0;
-    // }
-
-    // int OBSmartsPattern::GetAtomicNum(int idx)
-    // {
-    //     return GetExprAtomicNum(_pat->atom[idx].expr);
-    // }
-
-    // void OBSmartsPattern::GetBond(int &src, int &dst, int &ord, int idx)
-    // {
-    //     src = _pat->bond[idx].src;
-    //     dst = _pat->bond[idx].dst;
-    //     ord = GetExprOrder(_pat->bond[idx].expr);
-    // }
-
-    // void SmartsLexReplace(std::string &s, std::vector<std::pair<std::string, std::string>> &vlex)
-    // {
-    //     size_t j, pos;
-    //     std::string token, repstr;
-    //     std::vector<std::pair<std::string, std::string>>::iterator i;
-
-    //     for (pos = 0, pos = s.find("$", pos); pos < s.size(); pos = s.find("$", pos))
-    //     // for (pos = 0,pos = s.find("$",pos);pos != std::string::npos;pos = s.find("$",pos))
-    //     {
-    //         pos++;
-    //         for (j = pos; j < s.size(); ++j)
-    //             if (!isalpha(s[j]) && !isdigit(s[j]) && s[j] != '_')
-    //                 break;
-    //         if (pos == j)
-    //             continue;
-
-    //         token = s.substr(pos, j - pos);
-    //         for (i = vlex.begin(); i != vlex.end(); ++i)
-    //             if (token == i->first)
-    //             {
-    //                 repstr = "(" + i->second + ")";
-    //                 s.replace(pos, j - pos, repstr);
-    //                 j = 0;
-    //             }
-    //         pos = j;
-    //     }
-    // }
-
-    //! \class SmartsMatcher parsmart.h <openbabel/parsmart.h>
-    //! \brief Internal class: performs matching; a wrapper around previous
-    //! C matching code to make it thread safe.
-    // class SmartsMatcher
-    // {
-    // protected:
-    //     // recursive smarts cache
-    //     std::vector<std::pair<const Pattern *, std::vector<bool>>> RSCACHE;
-    //     // list of fragment patterns (e.g., (*).(*)
-    //     std::vector<const Pattern *> Fragments;
-
-    //     bool EvalAtomExpr(AtomExpr *expr, OBAtom *atom);
-    //     bool EvalBondExpr(BondExpr *expr, OBBond *bond);
-    //     void SetupAtomMatchTable(std::vector<std::vector<bool>> &ttab,
-    //                              const Pattern *pat, OBMol &mol);
-    //     void FastSingleMatch(OBMol &mol, const Pattern *pat,
-    //                          std::vector<std::vector<int>> &mlist);
-
-    //     friend class SSMatch;
-
-    // public:
-    //     SmartsMatcher() {}
-    //     virtual ~SmartsMatcher() {}
-
-    //     bool match(OBMol &mol, const Pattern *pat, std::vector<std::vector<int>> &mlist, bool single = false);
-    // };
-
-    // //! \class SSMatch parsmart.h <openbabel/parsmart.h>
-    // //! \brief Internal class: performs fast, exhaustive matching used to find
-    // //! just a single match in match() using recursion and explicit stack handling.
-    // class SSMatch
-    // {
-    // protected:
-    //     bool *_uatoms;
-    //     OBMol *_mol;
-    //     const Pattern *_pat;
-    //     std::vector<int> _map;
-
-    // public:
-    //     SSMatch(OBMol &, const Pattern *);
-    //     ~SSMatch();
-    //     void Match(std::vector<std::vector<int>> &v, int bidx = -1);
-    // };
-
-    // void SmartsLexReplace(std::string &,
-    //                             std::vector<std::pair<std::string, std::string>> &);
+    bool SmartsPattern::Match(Molecule &mol, bool single)
+    {
+        SmartsMatcher matcher;
+        if (_pat == nullptr)
+            return false;
+        if (_pat->hasExplicitH) // The SMARTS pattern contains [H]
+        {
+            // Do matching on a copy of mol with explicit hydrogens
+            Molecule tmol = mol;
+            tmol.AddHydrogens(false, false);
+            return (matcher.match(tmol, _pat, _mlist, single));
+        }
+        return (matcher.match(mol, _pat, _mlist, single));
+    }
+
+    bool SmartsPattern::HasMatch(Molecule &mol) const
+    {
+        // a convenience function
+        std::vector<std::vector<int>> dummy;
+        return Match(mol, dummy, Single);
+    }
+
+    bool SmartsPattern::Match(Molecule &mol, std::vector<std::vector<int>> &mlist,
+                                MatchType mtype /*=All*/) const
+    {
+        SmartsMatcher matcher;
+        mlist.clear();
+        if (_pat == nullptr)
+            return false;
+        if (_pat->hasExplicitH) // The SMARTS pattern contains [H]
+        {
+            // Do matching on a copy of mol with explicit hydrogens
+            Molecule tmol = mol;
+            tmol.AddHydrogens(false, false);
+            if (!matcher.match(tmol, _pat, mlist, mtype == Single))
+                return false;
+        }
+        else if (!matcher.match(mol, _pat, mlist, mtype == Single))
+            return false;
+
+        if ((mtype == AllUnique) && mlist.size() > 1)
+        {
+            // uniquify
+            bool ok;
+            bitset bv;
+            std::vector<bitset> vbv;
+            std::vector<std::vector<int>> ulist;
+            std::vector<std::vector<int>>::iterator i;
+            std::vector<bitset>::iterator j;
+
+            for (i = mlist.begin(); i != mlist.end(); ++i)
+            {
+                ok = true;
+                bv.reset();
+                SetBitsOn(bv, *i);
+                for (j = vbv.begin(); j != vbv.end() && ok; ++j)
+                    if ((*j) == bv)
+                        ok = false;
+
+                if (ok)
+                {
+                    ulist.push_back(*i);
+                    vbv.push_back(bv);
+                }
+            }
+
+            mlist = ulist;
+        }
+        return true;
+    }
+
+    bool SmartsPattern::RestrictedMatch(Molecule &mol,
+                                          std::vector<std::pair<int, int>> &pr,
+                                          bool single)
+    {
+        bool ok;
+        std::vector<std::vector<int>> mlist;
+        std::vector<std::vector<int>>::iterator i;
+        std::vector<std::pair<int, int>>::iterator j;
+
+        SmartsMatcher matcher;
+        matcher.match(mol, _pat, mlist);
+        _mlist.clear();
+        if (mlist.empty())
+            return (false);
+
+        for (i = mlist.begin(); i != mlist.end(); ++i)
+        {
+            ok = true;
+            for (j = pr.begin(); j != pr.end() && ok; ++j)
+                if ((*i)[j->first] != j->second)
+                    ok = false;
+
+            if (ok)
+                _mlist.push_back(*i);
+            if (single && !_mlist.empty())
+                return (true);
+        }
+
+        return ((_mlist.empty()) ? false : true);
+    }
+
+    bool SmartsPattern::RestrictedMatch(Molecule &mol, bitset &vres, bool single)
+    {
+        bool ok;
+        std::vector<int>::iterator j;
+        std::vector<std::vector<int>> mlist;
+        std::vector<std::vector<int>>::iterator i;
+
+        SmartsMatcher matcher;
+        matcher.match(mol, _pat, mlist);
+
+        _mlist.clear();
+        if (mlist.empty())
+            return (false);
+
+        for (i = mlist.begin(); i != mlist.end(); ++i)
+        {
+            ok = true;
+            for (j = i->begin(); j != i->end(); ++j)
+                if (!vres[*j])
+                {
+                    ok = false;
+                    break;
+                }
+            if (!ok)
+                continue;
+
+            _mlist.push_back(*i);
+            if (single && !_mlist.empty())
+                return (true);
+        }
+
+        return ((_mlist.empty()) ? false : true);
+    }
+
+    void SmartsMatcher::SetupAtomMatchTable(std::vector<std::vector<bool>> &ttab,
+                                              const Pattern *pat, Molecule &mol)
+    {
+        int i;
+
+        ttab.resize(pat->acount);
+        for (i = 0; i < pat->acount; ++i)
+            ttab[i].resize(mol.NumAtoms() + 1);
+
+        Atom *atom;
+        std::vector<Atom *>::iterator j;
+        for (i = 0; i < pat->acount; ++i)
+            for (atom = mol.BeginAtom(j); atom; atom = mol.NextAtom(j))
+                if (EvalAtomExpr(pat->atom[0].expr, atom))
+                    ttab[i][atom->GetIdx()] = true;
+    }
+
+    void SmartsMatcher::FastSingleMatch(Molecule &mol, const Pattern *pat,
+                                          std::vector<std::vector<int>> &mlist)
+    {
+        Atom *atom, *a1, *nbr;
+        std::vector<Atom *>::iterator i;
+
+        bitset bv(mol.NumAtoms() + 1);
+        std::vector<int> map;
+        map.resize(pat->acount);
+        std::vector<std::vector<Bond *>::iterator> vi;
+        std::vector<bool> vif;
+
+        if (pat->bcount)
+        {
+            vif.resize(pat->bcount);
+            vi.resize(pat->bcount);
+        }
+
+        int bcount;
+        for (atom = mol.BeginAtom(i); atom; atom = mol.NextAtom(i))
+            if (EvalAtomExpr(pat->atom[0].expr, atom))
+            {
+                map[0] = atom->GetIdx();
+                if (pat->bcount)
+                    vif[0] = false;
+                bv.reset();
+                bv.SetBitOn(atom->GetIdx());
+
+                for (bcount = 0; bcount >= 0;)
+                {
+                    //***entire pattern matched***
+                    if (bcount == pat->bcount) // save full match here
+                    {
+                        mlist.push_back(map);
+                        bcount--;
+                        return; // found a single match
+                    }
+
+                    //***match the next bond***
+                    if (!pat->bond[bcount].grow) // just check bond here
+                    {
+                        if (!vif[bcount])
+                        {
+                            Bond *bond = mol.GetBond(map[pat->bond[bcount].src],
+                                                       map[pat->bond[bcount].dst]);
+                            if (bond && EvalBondExpr(pat->bond[bcount].expr, bond))
+                            {
+                                vif[bcount++] = true;
+                                if (bcount < pat->bcount)
+                                    vif[bcount] = false;
+                            }
+                            else
+                                bcount--;
+                        }
+                        else // bond must have already been visited - backtrack
+                            bcount--;
+                    }
+                    else // need to map atom and check bond
+                    {
+                        a1 = mol.GetAtom(map[pat->bond[bcount].src]);
+
+                        if (!vif[bcount]) // figure out which nbr atom we are mapping
+                        {
+                            nbr = a1->BeginNbrAtom(vi[bcount]);
+                        }
+                        else
+                        {
+                            bv.SetBitOff(map[pat->bond[bcount].dst]);
+                            nbr = a1->NextNbrAtom(vi[bcount]);
+                        }
+
+                        for (; nbr; nbr = a1->NextNbrAtom(vi[bcount]))
+                            if (!bv[nbr->GetIdx()])
+                                if (EvalAtomExpr(pat->atom[pat->bond[bcount].dst].expr, nbr) && EvalBondExpr(pat->bond[bcount].expr, (Bond *)*(vi[bcount])))
+                                {
+                                    bv.SetBitOn(nbr->GetIdx());
+                                    map[pat->bond[bcount].dst] = nbr->GetIdx();
+                                    vif[bcount] = true;
+                                    bcount++;
+                                    if (bcount < pat->bcount)
+                                        vif[bcount] = false;
+                                    break;
+                                }
+
+                        if (!nbr) // no match - time to backtrack
+                            bcount--;
+                    }
+                }
+            }
+    }
+
+    bool SmartsMatcher::match(Molecule &mol, const Pattern *pat,
+                                std::vector<std::vector<int>> &mlist, bool single)
+    {
+        mlist.clear();
+        if (!pat || pat->acount == 0)
+            return (false); // shouldn't ever happen
+
+        if (single && !pat->ischiral)
+        {
+            // perform a fast single match (only works for non-chiral SMARTS)
+            FastSingleMatch(mol, pat, mlist);
+        }
+        else
+        {
+            // perform normal match (chirality ignored and checked below)
+            SSMatch ssm(mol, pat);
+            ssm.Match(mlist);
+        }
+
+        if (pat->ischiral)
+        {
+            std::vector<std::vector<int>>::iterator m;
+            std::vector<std::vector<int>> tmpmlist;
+
+            tmpmlist.clear();
+            // iterate over the atom mappings
+            for (m = mlist.begin(); m != mlist.end(); ++m)
+            {
+
+                bool allStereoCentersMatch = true;
+
+                // for each pattern atom
+                for (int j = 0; j < pat->acount; ++j)
+                {
+                    // skip non-chiral pattern atoms
+                    if (!pat->atom[j].chiral_flag)
+                        continue;
+                    // ignore @? in smarts, parse like any other smarts
+                    if (pat->atom[j].chiral_flag == AL_UNSPECIFIED)
+                        continue;
+
+                    // use the mapping the get the chiral atom in the molecule being queried
+                    Atom *center = mol.GetAtom((*m)[j]);
+
+                    // get the TetrahedralStereo::Config from the molecule
+                    StereoFacade stereo(&mol);
+                    TetrahedralStereo *ts = stereo.GetTetrahedralStereo(center->GetId());
+                    if (!ts || !ts->GetConfig().specified)
+                    {
+                        // no stereochemistry specified in molecule for the atom
+                        // corresponding to the chiral pattern atom using the current
+                        // mapping --> no match
+                        allStereoCentersMatch = false;
+                        break;
+                    }
+
+                    std::vector<int> nbrs = pat->atom[j].nbrs;
+
+                    if (nbrs.size() != 4)
+                    { // 3 nbrs currently not supported. Other values are errors.
+                        // stringstream ss;
+                        // ss << "Ignoring stereochemistry. There are " << nbrs.size() << " connections to this atom instead of 4. Title: " << mol.GetTitle();
+                        // obErrorLog.ThrowError(__FUNCTION__, ss.str(), obWarning);
+                        continue;
+                    }
+
+                    // construct a TetrahedralStereo::Config using the smarts pattern
+                    TetrahedralStereo::Config smartsConfig;
+                    smartsConfig.center = center->GetId();
+                    if (nbrs.at(0) == SmartsImplicitRef)
+                        smartsConfig.from = Stereo::ImplicitRef;
+                    else
+                        smartsConfig.from = mol.GetAtom((*m)[nbrs.at(0)])->GetId();
+                    Stereo::Ref firstref;
+                    if (nbrs.at(1) == SmartsImplicitRef)
+                        firstref = Stereo::ImplicitRef;
+                    else
+                        firstref = mol.GetAtom((*m)[nbrs.at(1)])->GetId();
+                    Atom *ra2 = mol.GetAtom((*m)[nbrs.at(2)]);
+                    Atom *ra3 = mol.GetAtom((*m)[nbrs.at(3)]);
+                    smartsConfig.refs = Stereo::MakeRefs(firstref, ra2->GetId(), ra3->GetId());
+
+                    smartsConfig.view = Stereo::ViewFrom;
+                    switch (pat->atom[j].chiral_flag)
+                    {
+                    case AL_CLOCKWISE:
+                        smartsConfig.winding = Stereo::Clockwise;
+                        break;
+                    case AL_ANTICLOCKWISE:
+                        smartsConfig.winding = Stereo::AntiClockwise;
+                        break;
+                    default:
+                        smartsConfig.specified = false;
+                    }
+
+                    // cout << "smarts config = " << smartsConfig << endl;
+                    // cout << "molecule config = " << ts->GetConfig() << endl;
+                    // cout << "match = " << (ts->GetConfig() == smartsConfig) << endl;
+
+                    // and save the match if the two configurations are the same
+                    if (ts->GetConfig() != smartsConfig)
+                        allStereoCentersMatch = false;
+
+                    // don't waste time checking more stereocenters using this mapping if one didn't match
+                    if (!allStereoCentersMatch)
+                        break;
+                }
+
+                // if all the atoms in the molecule match the stereochemistry specified
+                // in the smarts pattern, save this mapping as a match
+                if (allStereoCentersMatch)
+                    tmpmlist.push_back(*m);
+            }
+
+            mlist = tmpmlist;
+        }
+
+        return (!mlist.empty());
+    }
+
+    bool SmartsMatcher::EvalAtomExpr(AtomExpr *expr, Atom *atom)
+    {
+        for (;;)
+            switch (expr->type)
+            {
+            case AE_TRUE:
+                return true;
+            case AE_FALSE:
+                return false;
+            case AE_AROMATIC:
+                return atom->IsAromatic();
+            case AE_ALIPHATIC:
+                return !atom->IsAromatic();
+            case AE_CYCLIC:
+                return atom->IsInRing();
+            case AE_ACYCLIC:
+                return !atom->IsInRing();
+
+            case AE_MASS:
+                return expr->leaf.value == atom->GetIsotope();
+            case AE_ELEM:
+                return expr->leaf.value == (int)atom->GetAtomicNum();
+            case AE_AROMELEM:
+                return expr->leaf.value == (int)atom->GetAtomicNum() &&
+                       atom->IsAromatic();
+            case AE_ALIPHELEM:
+                return expr->leaf.value == (int)atom->GetAtomicNum() &&
+                       !atom->IsAromatic();
+            case AE_HCOUNT:
+                return expr->leaf.value == ((int)atom->ExplicitHydrogenCount() +
+                                            (int)atom->GetImplicitHCount());
+            case AE_CHARGE:
+                return expr->leaf.value == atom->GetFormalCharge();
+            case AE_CONNECT:
+                return expr->leaf.value == (int)atom->GetTotalDegree();
+            case AE_DEGREE:
+                return expr->leaf.value == (int)atom->GetExplicitDegree();
+            case AE_IMPLICIT:
+                return expr->leaf.value == (int)atom->GetImplicitHCount();
+            case AE_RINGS:
+                return expr->leaf.value == (int)atom->MemberOfRingCount();
+            case AE_SIZE:
+                return atom->IsInRingSize(expr->leaf.value);
+            case AE_VALENCE:
+                return expr->leaf.value == (int)atom->GetTotalValence();
+            case AE_CHIRAL:
+                // always return true (i.e. accept the match) and check later
+                return true;
+            case AE_HYB:
+                return expr->leaf.value == (int)atom->GetHyb();
+            case AE_RINGCONNECT:
+                return expr->leaf.value == (int)atom->CountRingBonds();
+
+            case AE_NOT:
+                return !EvalAtomExpr(expr->mon.arg, atom);
+            case AE_ANDHI: /* Same as AE_ANDLO */
+            case AE_ANDLO:
+                if (!EvalAtomExpr(expr->bin.lft, atom))
+                    return false;
+                expr = expr->bin.rgt;
+                break;
+            case AE_OR:
+                if (EvalAtomExpr(expr->bin.lft, atom))
+                    return true;
+                expr = expr->bin.rgt;
+                break;
+
+            case AE_RECUR:
+            {
+                // see if pattern has been matched
+                std::vector<std::pair<const Pattern *, std::vector<bool>>>::iterator i;
+                for (i = RSCACHE.begin(); i != RSCACHE.end(); ++i)
+                    if (i->first == (Pattern *)expr->recur.recur)
+                        return (i->second[atom->GetIdx()]);
+
+                // perceive and match pattern
+                std::vector<std::vector<int>>::iterator j;
+                std::vector<bool> vb(((Molecule *)atom->GetParent())->NumAtoms() + 1);
+                std::vector<std::vector<int>> mlist;
+                if (match(*((Molecule *)atom->GetParent()),
+                          (Pattern *)expr->recur.recur, mlist))
+                    for (j = mlist.begin(); j != mlist.end(); ++j)
+                        vb[(*j)[0]] = true;
+
+                RSCACHE.push_back(std::pair<const Pattern *,
+                                            std::vector<bool>>((const Pattern *)expr->recur.recur,
+                                                               vb));
+
+                return (vb[atom->GetIdx()]);
+            }
+
+            default:
+                return false;
+            }
+    }
+
+    bool SmartsMatcher::EvalBondExpr(BondExpr *expr, Bond *bond)
+    {
+        for (;;)
+            switch (expr->type)
+            {
+            case BE_ANDHI:
+            case BE_ANDLO:
+                if (!EvalBondExpr(expr->bin.lft, bond))
+                    return false;
+                expr = expr->bin.rgt;
+                break;
+
+            case BE_OR:
+                if (EvalBondExpr(expr->bin.lft, bond))
+                    return true;
+                expr = expr->bin.rgt;
+                break;
+
+            case BE_NOT:
+                return !EvalBondExpr(expr->mon.arg, bond);
+
+            case BE_ANY:
+                return true;
+            case BE_DEFAULT:
+                return bond->GetBondOrder() == 1 || bond->IsAromatic();
+            case BE_SINGLE:
+                return bond->GetBondOrder() == 1 && !bond->IsAromatic();
+            case BE_DOUBLE:
+                return bond->GetBondOrder() == 2 && !bond->IsAromatic();
+            case BE_TRIPLE:
+                return bond->GetBondOrder() == 3;
+            case BE_QUAD:
+                return bond->GetBondOrder() == 4;
+            case BE_AROM:
+                return bond->IsAromatic();
+            case BE_RING:
+                return bond->IsInRing();
+            // case BE_UP:
+            //   return bond->IsUp();
+            // case BE_DOWN:
+            //   return bond->IsDown();
+            // case BE_UPUNSPEC: // up or unspecified (i.e., not down)
+            //   return !bond->IsDown();
+            // case BE_DOWNUNSPEC: // down or unspecified (i.e., not up)
+            //   return !bond->IsUp();
+            default:
+                return false;
+            }
+    }
+
+    std::vector<std::vector<int>> &SmartsPattern::GetUMapList()
+    {
+        if (_mlist.empty() || _mlist.size() == 1)
+            return (_mlist);
+
+        bool ok;
+        BitVec bv;
+        std::vector<BitVec> vbv;
+        std::vector<std::vector<int>> mlist;
+        std::vector<std::vector<int>>::iterator i;
+        std::vector<BitVec>::iterator j;
+
+        for (i = _mlist.begin(); i != _mlist.end(); ++i)
+        {
+            ok = true;
+            bv.Clear();
+            bv.FromVecInt(*i);
+            for (j = vbv.begin(); j != vbv.end() && ok; ++j)
+                if ((*j) == bv)
+                    ok = false;
+
+            if (ok)
+            {
+                mlist.push_back(*i);
+                vbv.push_back(bv);
+            }
+        }
+
+        _mlist = mlist;
+        return (_mlist);
+    }
+
+    void SmartsPattern::WriteMapList(ostream &ofs)
+    {
+        std::vector<std::vector<int>>::iterator i;
+        std::vector<int>::iterator j;
+
+        for (i = _mlist.begin(); i != _mlist.end(); ++i)
+        {
+            for (j = (*i).begin(); j != (*i).end(); ++j)
+                ofs << *j << ' ' << ends;
+            ofs << endl;
+        }
+    }
+
+    //*******************************************************************
+    //  The SSMatch class performs exhaustive matching using recursion
+    //  Explicit stack handling is used to find just a single match in
+    //  match()
+    //*******************************************************************
+
+    SSMatch::SSMatch(Molecule &mol, const Pattern *pat)
+    {
+        _mol = &mol;
+        _pat = pat;
+        _map.resize(pat->acount);
+
+        if (!mol.Empty())
+        {
+            _uatoms = new bool[mol.NumAtoms() + 1];
+            memset((char *)_uatoms, '\0', sizeof(bool) * (mol.NumAtoms() + 1));
+        }
+        else
+            _uatoms = nullptr;
+    }
+
+    SSMatch::~SSMatch()
+    {
+        delete[] _uatoms;
+    }
+
+    void SSMatch::Match(std::vector<std::vector<int>> &mlist, int bidx)
+    {
+        SmartsMatcher matcher;
+        if (bidx == -1)
+        {
+            Atom *atom;
+            std::vector<Atom *>::iterator i;
+            for (atom = _mol->BeginAtom(i); atom; atom = _mol->NextAtom(i))
+                if (matcher.EvalAtomExpr(_pat->atom[0].expr, atom))
+                {
+                    _map[0] = atom->GetIdx();
+                    _uatoms[atom->GetIdx()] = true;
+                    Match(mlist, 0);
+                    _map[0] = 0;
+                    _uatoms[atom->GetIdx()] = false;
+                }
+            return;
+        }
+
+        if (bidx == _pat->bcount) // save full match here
+        {
+            mlist.push_back(_map);
+            return;
+        }
+
+        if (_pat->bond[bidx].grow) // match the next bond
+        {
+            int src = _pat->bond[bidx].src;
+            int dst = _pat->bond[bidx].dst;
+
+            if (_map[src] <= 0 || _map[src] > (signed)_mol->NumAtoms())
+                return;
+
+            AtomExpr *aexpr = _pat->atom[dst].expr;
+            BondExpr *bexpr = _pat->bond[bidx].expr;
+            Atom *atom, *nbr;
+            std::vector<Bond *>::iterator i;
+
+            atom = _mol->GetAtom(_map[src]);
+            for (nbr = atom->BeginNbrAtom(i); nbr; nbr = atom->NextNbrAtom(i))
+                if (!_uatoms[nbr->GetIdx()] && matcher.EvalAtomExpr(aexpr, nbr) &&
+                    matcher.EvalBondExpr(bexpr, ((Bond *)*i)))
+                {
+                    _map[dst] = nbr->GetIdx();
+                    _uatoms[nbr->GetIdx()] = true;
+                    Match(mlist, bidx + 1);
+                    _uatoms[nbr->GetIdx()] = false;
+                    _map[dst] = 0;
+                }
+        }
+        else // just check bond here
+        {
+            Bond *bond = _mol->GetBond(_map[_pat->bond[bidx].src],
+                                         _map[_pat->bond[bidx].dst]);
+            if (bond && matcher.EvalBondExpr(_pat->bond[bidx].expr, bond))
+                Match(mlist, bidx + 1);
+        }
+    }
+
+    static int GetExprOrder(BondExpr *expr)
+    {
+        int tmp1, tmp2;
+
+        switch (expr->type)
+        {
+        case BE_SINGLE:
+            return 1;
+        case BE_DOUBLE:
+            return 2;
+        case BE_TRIPLE:
+            return 3;
+        case BE_QUAD:
+            return 4;
+        case BE_AROM:
+            return 5;
+
+        case BE_UP:
+        case BE_DOWN:
+        case BE_UPUNSPEC:
+        case BE_DOWNUNSPEC:
+            return 1;
+
+        case BE_ANDHI:
+        case BE_ANDLO:
+            tmp1 = GetExprOrder(expr->bin.lft);
+            tmp2 = GetExprOrder(expr->bin.rgt);
+            if (tmp1 == 0)
+                return tmp2;
+            if (tmp2 == 0)
+                return tmp1;
+            if (tmp1 == tmp2)
+                return tmp1;
+            break;
+
+        case BE_OR:
+            tmp1 = GetExprOrder(expr->bin.lft);
+            if (tmp1 == 0)
+                return 0;
+            tmp2 = GetExprOrder(expr->bin.rgt);
+            if (tmp2 == 0)
+                return 0;
+            if (tmp1 == tmp2)
+                return tmp1;
+            break;
+        }
+
+        return 0;
+    }
+
+    static int GetExprCharge(AtomExpr *expr)
+    {
+        int tmp1, tmp2;
+
+        switch (expr->type)
+        {
+        case AE_CHARGE:
+            return expr->leaf.value;
+
+        case AE_ANDHI:
+        case AE_ANDLO:
+            tmp1 = GetExprCharge(expr->bin.lft);
+            tmp2 = GetExprCharge(expr->bin.rgt);
+            if (tmp1 == 0)
+                return tmp2;
+            if (tmp2 == 0)
+                return tmp1;
+            if (tmp1 == tmp2)
+                return tmp1;
+            break;
+
+        case AE_OR:
+            tmp1 = GetExprCharge(expr->bin.lft);
+            if (tmp1 == 0)
+                return 0;
+            tmp2 = GetExprCharge(expr->bin.rgt);
+            if (tmp2 == 0)
+                return 0;
+            if (tmp1 == tmp2)
+                return tmp1;
+            break;
+        }
+
+        return 0;
+    }
+
+    int SmartsPattern::GetCharge(int idx)
+    {
+        return GetExprCharge(_pat->atom[idx].expr);
+    }
+
+    static int GetExprAtomicNum(AtomExpr *expr)
+    {
+        int tmp1, tmp2;
+
+        switch (expr->type)
+        {
+        case AE_ELEM:
+        case AE_AROMELEM:
+        case AE_ALIPHELEM:
+            return expr->leaf.value;
+
+        case AE_ANDHI:
+        case AE_ANDLO:
+            tmp1 = GetExprAtomicNum(expr->bin.lft);
+            tmp2 = GetExprAtomicNum(expr->bin.rgt);
+            if (tmp1 == 0)
+                return tmp2;
+            if (tmp2 == 0)
+                return tmp1;
+            if (tmp1 == tmp2)
+                return tmp1;
+            break;
+
+        case AE_OR:
+            tmp1 = GetExprAtomicNum(expr->bin.lft);
+            if (tmp1 == 0)
+                return 0;
+            tmp2 = GetExprAtomicNum(expr->bin.rgt);
+            if (tmp2 == 0)
+                return 0;
+            if (tmp1 == tmp2)
+                return tmp1;
+            break;
+        }
+
+        return 0;
+    }
+
+    int SmartsPattern::GetAtomicNum(int idx)
+    {
+        return GetExprAtomicNum(_pat->atom[idx].expr);
+    }
+
+    void SmartsPattern::GetBond(int &src, int &dst, int &ord, int idx)
+    {
+        src = _pat->bond[idx].src;
+        dst = _pat->bond[idx].dst;
+        ord = GetExprOrder(_pat->bond[idx].expr);
+    }
+
+    void SmartsLexReplace(std::string &s, std::vector<std::pair<std::string, std::string>> &vlex)
+    {
+        size_t j, pos;
+        std::string token, repstr;
+        std::vector<std::pair<std::string, std::string>>::iterator i;
+
+        for (pos = 0, pos = s.find("$", pos); pos < s.size(); pos = s.find("$", pos))
+        // for (pos = 0,pos = s.find("$",pos);pos != std::string::npos;pos = s.find("$",pos))
+        {
+            pos++;
+            for (j = pos; j < s.size(); ++j)
+                if (!isalpha(s[j]) && !isdigit(s[j]) && s[j] != '_')
+                    break;
+            if (pos == j)
+                continue;
+
+            token = s.substr(pos, j - pos);
+            for (i = vlex.begin(); i != vlex.end(); ++i)
+                if (token == i->first)
+                {
+                    repstr = "(" + i->second + ")";
+                    s.replace(pos, j - pos, repstr);
+                    j = 0;
+                }
+            pos = j;
+        }
+    }
+
+    // ! \class SmartsMatcher parsmart.h <openbabel/parsmart.h>
+    // ! \brief Internal class: performs matching; a wrapper around previous
+    // ! C matching code to make it thread safe.
+    class SmartsMatcher
+    {
+    protected:
+        // recursive smarts cache
+        std::vector<std::pair<const Pattern *, std::vector<bool>>> RSCACHE;
+        // list of fragment patterns (e.g., (*).(*)
+        std::vector<const Pattern *> Fragments;
+
+        bool EvalAtomExpr(AtomExpr *expr, Atom *atom);
+        bool EvalBondExpr(BondExpr *expr, Bond *bond);
+        void SetupAtomMatchTable(std::vector<std::vector<bool>> &ttab,
+                                 const Pattern *pat, Molecule &mol);
+        void FastSingleMatch(Molecule &mol, const Pattern *pat,
+                             std::vector<std::vector<int>> &mlist);
+
+        friend class SSMatch;
+
+    public:
+        SmartsMatcher() {}
+        virtual ~SmartsMatcher() {}
+
+        bool match(Molecule &mol, const Pattern *pat, std::vector<std::vector<int>> &mlist, bool single = false);
+    };
+
+    //! \class SSMatch parsmart.h <openbabel/parsmart.h>
+    //! \brief Internal class: performs fast, exhaustive matching used to find
+    //! just a single match in match() using recursion and explicit stack handling.
+    class SSMatch
+    {
+    protected:
+        bool *_uatoms;
+        Molecule *_mol;
+        const Pattern *_pat;
+        std::vector<int> _map;
+
+    public:
+        SSMatch(Molecule &, const Pattern *);
+        ~SSMatch();
+        void Match(std::vector<std::vector<int>> &v, int bidx = -1);
+    };
+
+    void SmartsLexReplace(std::string &,
+                                std::vector<std::pair<std::string, std::string>> &);
 
 } // end namespace OpenBabel
 

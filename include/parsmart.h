@@ -5,6 +5,17 @@
 #include <vector>
 #include <bitset>
 #include <cstring>
+#include "molecule.h"
+#include "atom.h"
+#include "bond.h"
+
+using bitset = std::bitset<10>;
+
+void SetBitsOn(bitset & bitset, const std::vector<int> & bit_offsets) {
+  for (auto offset : bit_offsets) {
+    bitset.set(offset, true);
+  }
+}
 
 namespace MolCpp
 {
@@ -28,13 +39,13 @@ namespace MolCpp
         {
             int type;
             union _AtomExpr *arg;
-        } mon;
+        } mon; // unary
         struct
         {
             int type;
             union _AtomExpr *lft;
             union _AtomExpr *rgt;
-        } bin;
+        } bin; // binary
     } AtomExpr;
 
     //! \union _BondExpr parsmart.h <openbabel/parsmart.h>
@@ -46,13 +57,13 @@ namespace MolCpp
         {
             int type;
             union _BondExpr *arg;
-        } mon;
+        } mon; // unary
         struct
         {
             int type;
             union _BondExpr *lft;
             union _BondExpr *rgt;
-        } bin;
+        } bin; // binary
     } BondExpr;
 
     //! \struct BondSpec parsmart.h <openbabel/parsmart.h>
@@ -84,7 +95,7 @@ namespace MolCpp
         int aalloc, acount;
         int balloc, bcount;
         bool ischiral;
-        AtomSpec *atom;
+        AtomSpec *atom; // array of atoms, len(atom) == acount
         BondSpec *bond;
         int parts;
         bool hasExplicitH;
@@ -226,15 +237,15 @@ namespace MolCpp
 
         // TODO : match methods
 
-        //! \name Matching methods (SMARTS on a specific OBMol)
+        //! \name Matching methods (SMARTS on a specific Molecule)
         //@{
         //! Perform SMARTS matching for the pattern specified using Init().
         //! \param mol The molecule to use for matching
         //! \param single Whether only a single match is required (faster). Default is false.
         //! \return Whether matches occurred
-        // bool Match(OBMol &mol, bool single = false);
+        bool Match(Molecule &mol, bool single = false);
 
-        //! \name Matching methods (SMARTS on a specific OBMol)
+        //! \name Matching methods (SMARTS on a specific Molecule)
         //@{
         //! Perform SMARTS matching for the pattern specified using Init().
         //! This version is (more) thread safe.
@@ -242,18 +253,18 @@ namespace MolCpp
         //! \param mlist The resulting match list
         //! \param mtype The match type to use. Default is All.
         //! \return Whether matches occurred
-        // bool Match(OBMol &mol, std::vector<std::vector<int>> &mlist, MatchType mtype = All) const;
+        bool Match(Molecule &mol, std::vector<std::vector<int>> &mlist, MatchType mtype = All) const;
 
-        //! \name Matching methods (SMARTS on a specific OBMol)
+        //! \name Matching methods (SMARTS on a specific Molecule)
         //@{
         //! Thread safe check for any SMARTS match
         //! \param mol The molecule to use for matching
         //! \return Whether there exists any match
-        // bool HasMatch(OBMol &mol) const;
+        bool HasMatch(Molecule &mol) const;
 
-        // bool RestrictedMatch(OBMol &mol, std::vector<std::pair<int, int>> &pairs, bool single = false);
+        bool RestrictedMatch(Molecule &mol, std::vector<std::pair<int, int>> &pairs, bool single = false);
 
-        // bool RestrictedMatch(OBMol &mol, OBBitVec &bv, bool single = false);
+        bool RestrictedMatch(Molecule &mol, bitset &bv, bool single = false);
         //! \return the number of non-unique SMARTS matches
         //! To get the number of unique SMARTS matches, query GetUMapList()->size()
         unsigned int NumMatches() const
@@ -295,7 +306,8 @@ namespace MolCpp
         void WriteMapList(std::ostream &);
     };
 
-    enum ErrorCode {
+    enum ErrorCode
+    {
         ////////////////////////////////////////
         //
         // SyntaxError
@@ -412,11 +424,16 @@ namespace MolCpp
      */
     class Exception
     {
-        public:
+    public:
         /**
          * Exception type.
          */
-        enum Type { NoError, SyntaxError, SemanticsError };
+        enum Type
+        {
+            NoError,
+            SyntaxError,
+            SemanticsError
+        };
 
         /**
          * Default Constructor.
@@ -458,7 +475,7 @@ namespace MolCpp
         /**
          * Details concerning the exception.
          */
-        const std::string& what() const
+        const std::string &what() const
         {
             return m_what;
         }
@@ -479,7 +496,7 @@ namespace MolCpp
             return m_length;
         }
 
-        private:
+    private:
         Type m_type;
         ErrorCode m_errorCode;
         std::string m_what;
@@ -487,7 +504,51 @@ namespace MolCpp
         std::size_t m_length;
     };
 
+    //! \class OBSmartsMatcher parsmart.h <openbabel/parsmart.h>
+    //! \brief Internal class: performs matching; a wrapper around previous
+    //! C matching code to make it thread safe.
+    class SmartsMatcher
+    {
+    protected:
+        // recursive smarts cache
+        std::vector<std::pair<const Pattern *, std::vector<bool>>> RSCACHE;
+        // list of fragment patterns (e.g., (*).(*)
+        std::vector<const Pattern *> Fragments;
+        bool EvalAtomExpr(AtomExpr *expr, Atom *atom);
+        bool EvalBondExpr(BondExpr *expr, Bond *bond);
+        void SetupAtomMatchTable(std::vector<std::vector<bool>> &ttab,
+                                 const Pattern *pat, Molecule &mol);
+        void FastSingleMatch(Molecule &mol, const Pattern *pat,
+                             std::vector<std::vector<int>> &mlist);
 
+        friend class SSMatch;
+
+    public:
+        SmartsMatcher() {}
+        virtual ~SmartsMatcher() {}
+
+        bool match(Molecule &mol, const Pattern *pat, std::vector<std::vector<int>> &mlist, bool single = false);
+    };
+
+    //! \class SSMatch parsmart.h <openbabel/parsmart.h>
+    //! \brief Internal class: performs fast, exhaustive matching used to find
+    //! just a single match in match() using recursion and explicit stack handling.
+    class SSMatch
+    {
+    protected:
+        bool *_uatoms;
+        Molecule *_mol;
+        const Pattern *_pat;
+        std::vector<int> _map;
+
+    public:
+        SSMatch(Molecule &, const Pattern *);
+        ~SSMatch();
+        void Match(std::vector<std::vector<int>> &v, int bidx = -1);
+    };
+
+    void SmartsLexReplace(std::string &,
+                                std::vector<std::pair<std::string, std::string>> &);
 }
 
 #endif

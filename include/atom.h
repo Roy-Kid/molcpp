@@ -4,6 +4,7 @@
 #include <chemfiles.hpp>
 #include "graph.h"
 #include "bond.h"
+#include "element.h"
 #include <string>
 #include <optional>
 
@@ -14,13 +15,14 @@ namespace MolCpp
     {
         public:
             Atom(const chemfiles::Atom&);
+            Atom(const Element&);
             Atom() = default;
 
         private:
 
+            const Element& _element;
             std::string _name;
             std::string _type;
-            std::string _ele;
             double _mass;
             double _charge;
             std::experimental::optional<uint64_t> _atomic_number;

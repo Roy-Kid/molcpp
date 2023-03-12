@@ -14,6 +14,19 @@ namespace MolCpp
 
         unsigned int get_atomic_number() const { return _atomicNumber; };
         std::string get_symbol() const { return _symbol; };
+        double get_mass() const { return _mass; };
+        double get_eneg_allred() const { return _enegAllred; };
+        double get_cov_rad() const { return _covRad; };
+        double get_vdw_rad() const { return _vdwRad; };
+        unsigned int get_max_bonds() const { return _maxbonds; };
+        double get_atomic_mass() const { return _atomicMass; };
+        double get_eneg_pauling() const { return _enegPauling; };
+        double get_ionization() const { return _ionization; };
+        double get_electron_affinity() const { return _electronAffinity; };
+        double get_r() const { return _r; };
+        double get_g() const { return _g; };
+        double get_b() const { return _b; };
+        std::string get_name() const { return _elemName; };
 
         static const Element get_element(unsigned int atomicNumber);
 
