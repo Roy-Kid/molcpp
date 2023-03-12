@@ -18,6 +18,8 @@ namespace MolCpp
             Atom(const Element&);
             Atom() = default;
 
+            Element get_element() const { return _element; }
+
         private:
 
             const Element& _element;
@@ -25,7 +27,6 @@ namespace MolCpp
             std::string _type;
             double _mass;
             double _charge;
-            std::experimental::optional<uint64_t> _atomic_number;
     };
 
 }

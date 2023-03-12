@@ -41,32 +41,34 @@ namespace MolCpp
         else
             LOG_INFO("Adding non-polar hydrogens to molecule");
 
+        // TODO: depends how to store comformer
         // Make sure we have conformers (PR#1665519)
-        if (!_vconf.empty() && !Empty())
-        {
-            OBAtom *atom;
-            vector<OBAtom *>::iterator i;
-            for (atom = BeginAtom(i); atom; atom = NextAtom(i))
-            {
-                atom->SetVector();
-            }
-        }
+        // if (!_conformers.empty() && !is_empty())
+        // {
+        //     for (auto atom : get_atoms())
+        //     {
+        //         if (atom->get_vector().size() == 0)
+        //         {
+        //             atom->set_vector(_conformers[0][atom->get_index()]);
+        //         }
+        //     }
+        // }
 
-        SetHydrogensAdded(); // This must come after EndModify() as EndModify() wipes the flags
+        set_hydrogens_added(); // This must come after EndModify() as EndModify() wipes the flags
         // If chirality was already perceived, remember this (to avoid wiping information
         if (hasChiralityPerceived)
-            this->SetChiralityPerceived();
+            this->set_chirality_perceived();
 
         // count up number of hydrogens to add
-        OBAtom *atom, *h;
+        Atom *atom, *h;
         int hcount, count = 0;
-        vector<pair<OBAtom *, int>> vhadd;
-        vector<OBAtom *>::iterator i;
-        for (atom = BeginAtom(i); atom; atom = NextAtom(i))
+        std::vector<pair<OBAtom *, int>> vhadd;
+        std::vector<Atom *>::iterator i;
+        for (auto atom : get_atoms())
         {
-            if (whichHydrogen == PolarHydrogen && !AtomIsNSOP(atom))
+            if (whichHydrogen == PolarHydrogen && !atom->get_element().is_NOSP())
                 continue;
-            if (whichHydrogen == NonPolarHydrogen && AtomIsNSOP(atom))
+            if (whichHydrogen == NonPolarHydrogen && atom->get_element().is_NOSP())
                 continue;
 
             hcount = atom->GetImplicitHCount();

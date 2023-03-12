@@ -30,6 +30,8 @@ namespace MolCpp
 
         static const Element get_element(unsigned int atomicNumber);
 
+        bool is_NOSP() const;
+
     private:
         unsigned int _atomicNumber;
         std::string _symbol;

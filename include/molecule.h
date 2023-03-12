@@ -67,9 +67,14 @@ namespace MolCpp
         bool is_corrected_for_ph() { return has_flag(_flags, PH_CORRECTED_MOL); }
         bool has_hydrogens_added() { return has_flag(_flags, H_ADDED_MOL); }
         bool has_chirality_perceived() { return has_flag(_flags, CHIRALITY_MOL); }
+        bool is_empty() { return _atoms.empty() && _subgraphs.empty(); }
+        void set_hydrogens_added() { switch_flag(_flags, H_ADDED_MOL); }
+        void set_chirality_perceived() { switch_flag(_flags, CHIRALITY_MOL); }
 
     private:
         int _flags;
+        std::vector<double*> _conformers;
+
 
     };
 
