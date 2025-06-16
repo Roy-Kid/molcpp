@@ -2,15 +2,16 @@
 #define MOLCPP_BOX_HPP
 
 #include "molcpp/types.hpp"
-#include "molcpp/export.hpp"
+#include "molcpp/exports.h"
+#include "molcpp/spatial/region.hpp"
+#include "molcpp/spatial/boundary.hpp"
 
 #include "xtensor-blas/xlinalg.hpp"
 #include <initializer_list>
-#include <xtensor/xarray.hpp>
-#include <xtensor/xbuilder.hpp>
-#include <xtensor/xfixed.hpp>
-#include <xtensor/xmath.hpp>
-#include <xtensor/xtensor.hpp>
+#include <xtensor/containers/xarray.hpp>
+#include <xtensor/generators/xbuilder.hpp>
+#include <xtensor/containers/xfixed.hpp>
+#include <xtensor/core/xmath.hpp>
 
 namespace molcpp
 {
@@ -63,55 +64,6 @@ static bool is_diagonal(const Mat3 &matrix)
     return is_tril_zero && is_triu_zero;
 }
 
-class MOLCPP_EXPORT Region
-{
-  public:
-    /// Default constructor
-    Region() = default;
-
-    virtual ~Region() = default;
-
-    /// Declare copy constructor
-    Region(const Region &) = default;
-
-    /// Declare copy assignment operator
-    auto operator=(const Region &) -> Region & = default;
-
-    /// Declare move constructor
-    Region(Region &&) = default;
-
-    /// Declare move assignment operator
-    auto operator=(Region &&) -> Region & = default;
-
-    /// Check if points is inside the region
-    virtual auto isin(const xt::xarray<double> &xyz) const -> xt::xarray<bool> = 0;
-
-  private:
-};
-
-class MOLCPP_EXPORT Boundary
-{
-  public:
-    /// Default constructor
-    Boundary() = default;
-
-    virtual ~Boundary() = default;
-
-    /// Declare copy constructor
-    Boundary(const Boundary &) = default;
-
-    /// Declare copy assignment operator
-    auto operator=(const Boundary &) -> Boundary & = default;
-
-    /// Declare move constructor
-    Boundary(Boundary &&) = default;
-
-    /// Declare move assignment operator
-    auto operator=(Boundary &&) -> Boundary & = default;
-
-    virtual auto wrap(const xt::xarray<double> &) const -> xt::xarray<double> = 0;
-};
-
 class MOLCPP_EXPORT Box : public Region, public Boundary
 {
   public:
@@ -162,10 +114,20 @@ class MOLCPP_EXPORT Box : public Region, public Boundary
 
     void set_lengths_tilts(const Vec3 &lengths, const Vec3 &tilts);
 
-    auto isin(const xt::xarray<double> &xyz) const -> xt::xarray<bool> override;
+    // Region interface
+    bool isin(const xt::xarray<double>& xyz) const override;
+    xt::xarray<bool> mask(const xt::xarray<double>& xyz) const override;
+    std::array<double, 6> boundary() const override;
+    double volume() const override;
 
-    auto wrap(const xt::xarray<double> &xyz) const -> xt::xarray<double> override;
+    // Boundary interface  
+    xt::xarray<double> wrap(const xt::xarray<double>& xyz) const override;
+    xt::xarray<double> minimum_image(const xt::xarray<double>& r1, 
+                                    const xt::xarray<double>& r2) const override;
+    std::array<double, 6> get_bounds() const override;
+    std::array<bool, 3> is_periodic() const override;
 
+    // Box-specific wrapping methods
     auto wrap_orth(const xt::xarray<double> &xyz) const -> xt::xarray<double>;
 
     auto wrap_tric(const xt::xarray<double> &xyz) const -> xt::xarray<double>;

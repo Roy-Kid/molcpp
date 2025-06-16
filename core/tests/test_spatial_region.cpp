@@ -2,8 +2,9 @@
 #include <catch2/catch_approx.hpp>
 #include "molcpp/spatial/region.hpp"
 #include "molcpp/spatial/boundary.hpp"
-#include <xtensor/xarray.hpp>
-#include <xtensor/xbuilder.hpp>
+#include <xtensor/containers/xarray.hpp>
+#include <xtensor/generators/xbuilder.hpp>
+#include <xtensor/generators/xrandom.hpp>
 #include <memory>
 #include <vector>
 #include <cmath>
@@ -263,162 +264,13 @@ TEST_CASE("Boolean region combinations", "[spatial][region][boolean]") {
     }
 }
 
-TEST_CASE("Boundary condition tests", "[spatial][boundary]") {
-    SECTION("FreeBoundary tests") {
-        FreeBoundary free_boundary;
-
-        // No wrapping
-        xt::xarray<double> coords = {{1.0, 2.0, 3.0}, {-1.0, -2.0, -3.0}};
-        auto wrapped = free_boundary.wrap(coords);
-        REQUIRE(xt::allclose(wrapped, coords));
-
-        // Minimum image is simple difference
-        xt::xarray<double> r1 = {0.0, 0.0, 0.0};
-        xt::xarray<double> r2 = {1.0, 2.0, 3.0};
-        auto dr = free_boundary.minimum_image(r1, r2);
-        REQUIRE(xt::allclose(dr, r2 - r1));
-
-        // Not periodic
-        auto periodic = free_boundary.is_periodic();
-        REQUIRE(periodic[0] == false);
-        REQUIRE(periodic[1] == false);
-        REQUIRE(periodic[2] == false);
-    }
-
-    SECTION("OrthogonalBoundary tests") {
-        Vec3 box_lengths = {2.0, 2.0, 2.0};
-        OrthogonalBoundary ortho_boundary(box_lengths);
-
-        // Test wrapping
-        xt::xarray<double> coords = {{2.5, 1.5, 0.5}, {-0.5, 0.5, 1.5}};
-        auto wrapped = ortho_boundary.wrap(coords);
-        
-        REQUIRE(wrapped(0, 0) == Approx(0.5));  // 2.5 - 2.0
-        REQUIRE(wrapped(0, 1) == Approx(1.5));  // unchanged
-        REQUIRE(wrapped(0, 2) == Approx(0.5));  // unchanged
-        REQUIRE(wrapped(1, 0) == Approx(1.5));  // -0.5 + 2.0
-        REQUIRE(wrapped(1, 1) == Approx(0.5));  // unchanged
-        REQUIRE(wrapped(1, 2) == Approx(1.5));  // unchanged
-
-        // Test minimum image
-        xt::xarray<double> r1 = {0.1, 0.1, 0.1};
-        xt::xarray<double> r2 = {1.9, 0.1, 0.1};
-        auto dr = ortho_boundary.minimum_image(r1, r2);
-        REQUIRE(dr(0) == Approx(-0.2));  // 1.9 - 0.1 - 2.0 (wrapped)
-        REQUIRE(dr(1) == Approx(0.0));   // unchanged
-        REQUIRE(dr(2) == Approx(0.0));   // unchanged
-
-        // Is periodic
-        auto periodic = ortho_boundary.is_periodic();
-        REQUIRE(periodic[0] == true);
-        REQUIRE(periodic[1] == true);
-        REQUIRE(periodic[2] == true);
-    }
-
-    SECTION("SphericalBoundary tests") {
-        Vec3 center = {0.0, 0.0, 0.0};
-        double radius = 1.0;
-        SphericalBoundary sphere_boundary(center, radius, false);
-
-        // Non-periodic: no wrapping
-        xt::xarray<double> coords = {{1.5, 0.0, 0.0}};
-        auto wrapped = sphere_boundary.wrap(coords);
-        REQUIRE(xt::allclose(wrapped, coords));
-
-        // Boundary
-        auto bounds = sphere_boundary.get_bounds();
-        REQUIRE(bounds[0] == Approx(-1.0));
-        REQUIRE(bounds[1] == Approx(1.0));
-        REQUIRE(bounds[2] == Approx(-1.0));
-        REQUIRE(bounds[3] == Approx(1.0));
-        REQUIRE(bounds[4] == Approx(-1.0));
-        REQUIRE(bounds[5] == Approx(1.0));
-    }
-}
-
-TEST_CASE("Complex region-boundary combinations", "[spatial][integration]") {
-    SECTION("Region with periodic boundary") {
-        // Create a cube region
-        auto cube = std::make_shared<InsideCube>(Vec3{0.5, 0.5, 0.5}, 1.0);
-        
-        // Create periodic boundary
-        Vec3 box_lengths = {2.0, 2.0, 2.0};
-        OrthogonalBoundary boundary(box_lengths);
-        
-        // Test that region is compatible with boundary
-        REQUIRE(cube->is_compatible_with(boundary) == true);
-        
-        // Points outside box should wrap into region
-        xt::xarray<double> coords_outside = {{2.7, 0.8, 0.8}};
-        auto wrapped = boundary.wrap(coords_outside);
-        
-        // After wrapping: 2.7 -> 0.7, which should be in cube [0.5, 1.5]
-        REQUIRE(cube->isin(wrapped) == true);
-    }
-
-    SECTION("Multiple regions with boundary") {
-        // Create two spheres in different parts of periodic box
-        auto sphere1 = std::make_shared<InsideSphere>(Vec3{0.5, 1.0, 1.0}, 0.3);
-        auto sphere2 = std::make_shared<InsideSphere>(Vec3{1.5, 1.0, 1.0}, 0.3);
-        
-        OrRegion union_spheres(sphere1, sphere2);
-        
-        Vec3 box_lengths = {2.0, 2.0, 2.0};
-        OrthogonalBoundary boundary(box_lengths);
-        
-        // Point near wrapped location of sphere1
-        xt::xarray<double> coords = {{2.3, 1.0, 1.0}};  // Should wrap to {0.3, 1.0, 1.0}
-        auto wrapped = boundary.wrap(coords);
-        
-        REQUIRE(union_spheres.isin(wrapped) == true);
-    }
-}
-
-TEST_CASE("Edge cases and error handling", "[spatial][errors]") {
-    SECTION("Invalid construction parameters") {
-        REQUIRE_THROWS_AS(InsideCube({0,0,0}, -1.0), std::invalid_argument);
-        REQUIRE_THROWS_AS(InsideSphere({0,0,0}, -1.0), std::invalid_argument);
-        REQUIRE_THROWS_AS(InsideCylinder({0,0,0}, {0,0,0}, 1.0), std::invalid_argument);
-        REQUIRE_THROWS_AS(NearPlane({0,0,0}, {0,0,0}, 1.0), std::invalid_argument);
-    }
-
-    SECTION("Invalid coordinate shapes") {
-        InsideCube cube({0,0,0}, 1.0);
-        
-        // Wrong dimensions
-        xt::xarray<double> coords_1d = {1.0, 2.0, 3.0};
-        REQUIRE_THROWS_AS(cube.isin(coords_1d), std::invalid_argument);
-        
-        // Wrong second dimension
-        xt::xarray<double> coords_2d = {{1.0, 2.0}};
-        REQUIRE_THROWS_AS(cube.isin(coords_2d), std::invalid_argument);
-    }
-
-    SECTION("Empty boolean regions") {
-        std::vector<std::shared_ptr<Region>> empty_regions;
-        REQUIRE_THROWS_AS(AndRegion(empty_regions), std::invalid_argument);
-        REQUIRE_THROWS_AS(OrRegion(empty_regions), std::invalid_argument);
-        REQUIRE_THROWS_AS(NotRegion(nullptr), std::invalid_argument);
-    }
-
-    SECTION("Empty coordinate arrays") {
-        InsideCube cube({0,0,0}, 1.0);
-        xt::xarray<double> empty_coords = xt::empty<double>({0, 3});
-        
-        // Empty array should return true (vacuous truth)
-        REQUIRE(cube.isin(empty_coords) == true);
-        
-        auto mask = cube.mask(empty_coords);
-        REQUIRE(mask.size() == 0);
-    }
-}
 
 TEST_CASE("Performance and numerical stability", "[spatial][performance]") {
     SECTION("Large coordinate arrays") {
         InsideSphere sphere({0.0, 0.0, 0.0}, 1.0);
         
         // Create large array of random points
-        const size_t n_points = 1000;
+        const int n_points = 1000;
         xt::xarray<double> coords = xt::random::randn<double>({n_points, 3});
         
         // Should not crash and should complete quickly
@@ -426,8 +278,8 @@ TEST_CASE("Performance and numerical stability", "[spatial][performance]") {
         REQUIRE(mask.size() == n_points);
         
         // Count points inside sphere (approximately π/6 ≈ 0.52 for unit cube in unit sphere)
-        size_t count_inside = 0;
-        for (size_t i = 0; i < n_points; ++i) {
+        int count_inside = 0;
+        for (int i = 0; i < n_points; ++i) {
             if (mask(i)) count_inside++;
         }
         

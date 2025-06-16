@@ -1,7 +1,7 @@
 #include "molcpp/spatial/box.hpp"
 #include "xtensor-blas/xlinalg.hpp"
-#include <xtensor/xarray.hpp>
-#include <xtensor/xmath.hpp>
+#include <xtensor/containers/xarray.hpp>
+#include <xtensor/core/xmath.hpp>
 
 
 namespace molcpp
@@ -254,9 +254,91 @@ auto Box::get_distance_between_faces() const -> Vec3
 
 }
 
-auto Box::isin(const xt::xarray<double> &xyz) const -> xt::xarray<bool>
+auto Box::isin(const xt::xarray<double> &xyz) const -> bool
 {
+    // For now, always return true (infinite space)
+    // This could be enhanced to check if particles are within the box bounds
     return true;
+}
+
+auto Box::mask(const xt::xarray<double> &xyz) const -> xt::xarray<bool>
+{
+    // For now, return all true (all particles are "inside")
+    // This could be enhanced to properly check box bounds
+    size_t n_particles = xyz.shape(0);
+    return xt::ones<bool>({n_particles});
+}
+
+auto Box::boundary() const -> std::array<double, 6>
+{
+    auto lengths = get_lengths();
+    return {-lengths(0)/2, lengths(0)/2, 
+            -lengths(1)/2, lengths(1)/2,
+            -lengths(2)/2, lengths(2)/2};
+}
+
+auto Box::volume() const -> double
+{
+    return get_volume();
+}
+
+auto Box::minimum_image(const xt::xarray<double>& r1, 
+                       const xt::xarray<double>& r2) const -> xt::xarray<double>
+{
+    xt::xarray<double> dr = r2 - r1;  // Make explicit copy
+    
+    switch (calc_style_from_matrix(_matrix))
+    {
+    case FREE:
+        return dr;
+    case ORTHOGONAL:
+        {
+            auto lengths = get_lengths();
+            auto half_lengths = lengths * 0.5;
+            
+            // Apply minimum image convention using xtensor operations
+            auto mask_pos = dr > half_lengths;
+            auto mask_neg = dr < -half_lengths;
+            dr = xt::where(mask_pos, dr - lengths, dr);
+            dr = xt::where(mask_neg, dr + lengths, dr);
+            return dr;
+        }
+    case TRICLINIC:
+        {
+            // Convert to fractional coordinates
+            auto fractional_dr = xt::linalg::dot(get_inv(), dr);
+            
+            // Apply minimum image in fractional space using xtensor operations
+            auto mask_pos = fractional_dr > 0.5;
+            auto mask_neg = fractional_dr < -0.5;
+            fractional_dr = xt::where(mask_pos, fractional_dr - 1.0, fractional_dr);
+            fractional_dr = xt::where(mask_neg, fractional_dr + 1.0, fractional_dr);
+            
+            // Convert back to Cartesian
+            return xt::linalg::dot(get_matrix(), fractional_dr);
+        }
+    default:
+        throw std::runtime_error("Invalid Style");
+    }
+}
+
+auto Box::get_bounds() const -> std::array<double, 6>
+{
+    return boundary();
+}
+
+auto Box::is_periodic() const -> std::array<bool, 3>
+{
+    switch (calc_style_from_matrix(_matrix))
+    {
+    case FREE:
+        return {false, false, false};
+    case ORTHOGONAL:
+    case TRICLINIC:
+        return {true, true, true};
+    default:
+        throw std::runtime_error("Invalid Style");
+    }
 }
 
 auto Box::wrap(const xt::xarray<double> &xyz) const -> xt::xarray<double>

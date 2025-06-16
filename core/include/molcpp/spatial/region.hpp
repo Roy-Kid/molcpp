@@ -6,7 +6,7 @@
 #include <cmath>
 #include <algorithm>
 #include <xtensor/containers/xarray.hpp>
-#include <xtensor/containers/xview.hpp>
+#include <xtensor/views/xview.hpp>
 #include <xtensor/core/xmath.hpp>
 #include "molcpp/types.hpp"
 #include "molcpp/spatial/boundary.hpp"
