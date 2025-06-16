@@ -2,7 +2,7 @@
 # Centralized dependency management for molcpp
 
 # Function to find or fetch Catch2
-function(find_or_fetch_catch2)
+function(target_link_catch2 molcpp_target)
     if(NOT TARGET Catch2::Catch2WithMain)
         find_package(Catch2 3 QUIET)
         
@@ -26,63 +26,24 @@ function(find_or_fetch_catch2)
     else()
         message(STATUS "Catch2 already available")
     endif()
+
+    target_link_libraries(${molcpp_target} PRIVATE Catch2::Catch2WithMain)
+
 endfunction()
 
-# Function to setup common Catch2 target properties
-function(setup_catch2_target target_name)
-    if(TARGET ${target_name})
-        target_compile_features(${target_name} PRIVATE cxx_std_17)
-        
-        # Set common compiler flags for Catch2 targets
-        if(MSVC)
-            target_compile_options(${target_name} PRIVATE /W4)
-        else()
-            target_compile_options(${target_name} PRIVATE -Wall -Wextra -Wpedantic)
-        endif()
-    endif()
-endfunction()
-
-function(find_or_fetch_xtensor)
+# Function to find or fetch xtensor
+function(target_link_xtensor molcpp_target)
     if(NOT TARGET xtensor)
-        find_package(xtensor 0.24.0 QUIET)
-
+        message(STATUS "Checking for xtensor...")
+        find_package(xtensor 0.26.0 QUIET)
         if(NOT xtensor_FOUND)
-            message(STATUS "xtensor not found, downloading...")
-            include(FetchContent)
-            
-            # First fetch xtl (xtensor dependency)
-            FetchContent_Declare(
-                xtl
-                GIT_REPOSITORY https://github.com/xtensor-stack/xtl.git
-                GIT_TAG        0.8.0
-            )
-            FetchContent_MakeAvailable(xtl)
-            
-            # Then fetch xtensor
-            FetchContent_Declare(
-                xtensor
-                GIT_REPOSITORY https://github.com/xtensor-stack/xtensor.git
-                GIT_TAG        0.26.0
-            )
-            FetchContent_MakeAvailable(xtensor)
+            message(ERROR "NOT SUPPORT fetch content yet")
+        elseif()
+            message(STATUS "Found xtensor version ${xtensor_VERSION}")           
         endif()
     else()
         message(STATUS "xtensor already available")
     endif()
-endfunction()
-
-function(setup_xtensor target_name)
-    if(TARGET ${target_name})
-        target_compile_features(${target_name} PRIVATE cxx_std_17)
-        
-        # Set common compiler flags for xtensor targets
-        if(MSVC)
-            set(CMAKE_EXE_LINKER_FLAGS /MANIFEST:NO)
-        endif()
-        
-        # Link to xtensor target - this automatically handles include directories
-        target_link_libraries(${target_name} PUBLIC xtensor)
-        
-        message(STATUS "Setup xtensor for ${target_name}")
-    endif()
+    target_include_directories(${molcpp_target} PUBLIC ${xtensor_INCLUDE_DIRS})
+    target_link_libraries(${molcpp_target} PUBLIC xtensor)
 endfunction()

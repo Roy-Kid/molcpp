@@ -22,7 +22,6 @@ set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${PROJECT_SOURCE_DIR}/cmake")
 
 # Include dependency management
 include(deps)
-find_or_fetch_xtensor()
 
 if (POLICY CMP0042)
     cmake_policy(SET CMP0042 NEW) # OSX RPATH handling
@@ -95,8 +94,10 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MOLCPP_SANITIZERS}")
 file(GLOB_RECURSE molcpp_objects_sources src/**.cpp)
 
 add_library(molcpp_objects OBJECT ${molcpp_objects_sources})
+
+target_link_xtensor(molcpp_objects)
+
 target_compile_features(molcpp_objects PRIVATE cxx_std_17 c_std_99)
-setup_xtensor(molcpp_objects)
 
 target_include_directories(molcpp_objects SYSTEM BEFORE PRIVATE ${EXTERNAL_INCLUDES})
 target_include_directories(molcpp_objects SYSTEM BEFORE PRIVATE ${ZLIB_INCLUDE_DIRS} ${LIBLZMA_INCLUDE_DIRS})
@@ -159,6 +160,8 @@ set(MOLCPP_OBJECTS
 
 # Add the main molcpp library
 add_library(molcpp ${MOLCPP_OBJECTS})
+
+target_link_xtensor(molcpp)
 
 target_compile_features(molcpp PUBLIC cxx_std_17 c_std_99)
 

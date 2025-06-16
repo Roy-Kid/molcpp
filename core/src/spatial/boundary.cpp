@@ -2,8 +2,8 @@
 #include <stdexcept>
 #include <limits>
 #include <cmath>
-#include <xtensor/xmath.hpp>
-#include <xtensor/xview.hpp>
+#include <xtensor/core/xmath.hpp>
+#include <xtensor/views/xview.hpp>
 #include <xtensor-blas/xlinalg.hpp>
 
 namespace molcpp {
