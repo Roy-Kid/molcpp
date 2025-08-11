@@ -2,21 +2,18 @@
 #include <iostream>
 #include <xtensor/xtensor.hpp>
 
-// Replace this mock with your actual Box implementation in your environment
-struct MockBox {
-    float Lx_ = 10, Ly_ = 10, Lz_ = 10; bool px_=true, py_=true, pz_=true;
-    float Lx() const { return Lx_; }
-    float Ly() const { return Ly_; }
-    float Lz() const { return Lz_; }
-    bool periodic_x() const { return px_; }
-    bool periodic_y() const { return py_; }
-    bool periodic_z() const { return pz_; }
-};
+#if __has_include("spatial/Box.hpp")
+  #include "spatial/Box.hpp"
+#elif __has_include("spatial/box.hpp")
+  #include "spatial/box.hpp"
+#else
+  #error "Could not find user's Box header under src/spatial. Please ensure src/spatial/Box.hpp or src/spatial/box.hpp is available and add -I src to include dirs."
+#endif
 
 int main() {
     using namespace molcpp;
     xt::xtensor<float, 2> pts = {{0.f,0.f,0.f}, {1.f,0.f,0.f}, {2.f,0.f,0.f}};
-    MockBox box;
+    Box box(10.f, 10.f, 10.f, true, true, true);
     AABBQuery nq(pts, box, 4);
     auto [ii, jj, dd] = nq.query(pts, 1.25f, false);
     std::cout << "pairs: " << ii.size() << "\n";
