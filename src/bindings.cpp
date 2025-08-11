@@ -14,21 +14,26 @@ PYBIND11_MODULE(molcpp_aabb, m) {
     m.doc() = "molcpp AABB neighbor finder with xtensor and OpenMP";
 
     py::class_<AABBQuery>(m, "AABBQuery")
-        .def(py::init([](const xt::pyarray<float>& points,
-                         float Lx, float Ly, float Lz,
-                         bool periodic_x, bool periodic_y, bool periodic_z,
-                         int leaf_size) {
+        .def(py::init([](const xt::pyarray<float>& points, py::object box, int leaf_size) {
                 if (points.dimension() != 2 || points.shape(1) != 3) {
                     throw std::runtime_error("points must have shape (N, 3)");
                 }
                 xt::xtensor<float, 2> pts = points;
-                BoxParams bp{Lx, Ly, Lz, periodic_x, periodic_y, periodic_z};
-                return new AABBQuery(pts, bp, leaf_size);
+                // Expect the Python Box to expose methods: Lx(), Ly(), Lz(), periodic_x(), periodic_y(), periodic_z()
+                // We will pass the box through to the templated ctor using a small shim
+                struct PyBoxShim {
+                    py::object obj;
+                    float Lx() const { return obj.attr("Lx")().cast<float>(); }
+                    float Ly() const { return obj.attr("Ly")().cast<float>(); }
+                    float Lz() const { return obj.attr("Lz")().cast<float>(); }
+                    bool periodic_x() const { return obj.attr("periodic_x")().cast<bool>(); }
+                    bool periodic_y() const { return obj.attr("periodic_y")().cast<bool>(); }
+                    bool periodic_z() const { return obj.attr("periodic_z")().cast<bool>(); }
+                };
+                PyBoxShim shim{box};
+                return new AABBQuery(pts, shim, leaf_size);
             }),
-            py::arg("points"),
-            py::arg("Lx"), py::arg("Ly"), py::arg("Lz"),
-            py::arg("periodic_x") = true, py::arg("periodic_y") = true, py::arg("periodic_z") = true,
-            py::arg("leaf_size") = 8)
+            py::arg("points"), py::arg("box"), py::arg("leaf_size") = 8)
         .def("query",
              [](const AABBQuery& self, const xt::pyarray<float>& query_points, float r_max, bool exclude_ii) {
                  xt::xtensor<float, 2> qp = query_points;

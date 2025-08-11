@@ -20,22 +20,8 @@
 
 namespace molcpp {
 
-struct BoxParams {
-    float Lx;
-    float Ly;
-    float Lz;
-    bool periodic_x;
-    bool periodic_y;
-    bool periodic_z;
-};
-
 class AABBQuery {
 public:
-    AABBQuery(const xt::xtensor<float, 2>& points, const BoxParams& box, int leaf_size = 8)
-        : m_Lx(box.Lx), m_Ly(box.Ly), m_Lz(box.Lz), m_px(box.periodic_x), m_py(box.periodic_y), m_pz(box.periodic_z) {
-        init_points(points, leaf_size);
-    }
-
     template <class BoxLike>
     AABBQuery(const xt::xtensor<float, 2>& points, const BoxLike& box_like, int leaf_size = 8)
         : m_Lx(box_like.Lx()), m_Ly(box_like.Ly()), m_Lz(box_like.Lz()),
