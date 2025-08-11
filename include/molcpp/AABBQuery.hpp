@@ -23,9 +23,14 @@ namespace molcpp {
 class AABBQuery {
 public:
     template <class BoxLike>
-    AABBQuery(const xt::xtensor<float, 2>& points, const BoxLike& box_like, int leaf_size = 8)
-        : m_Lx(box_like.Lx()), m_Ly(box_like.Ly()), m_Lz(box_like.Lz()),
-          m_px(box_like.periodic_x()), m_py(box_like.periodic_y()), m_pz(box_like.periodic_z()) {
+    AABBQuery(const xt::xtensor<float, 2>& points, const BoxLike& box_like, int leaf_size = 8) {
+        // Expect BoxLike to expose: get_distance_between_faces() -> Vec3 (double), is_periodic() -> array<bool,3>
+        auto L = box_like.get_distance_between_faces();
+        auto P = box_like.is_periodic();
+        m_Lx = static_cast<float>(L[0]);
+        m_Ly = static_cast<float>(L[1]);
+        m_Lz = static_cast<float>(L[2]);
+        m_px = P[0]; m_py = P[1]; m_pz = P[2];
         init_points(points, leaf_size);
     }
 
