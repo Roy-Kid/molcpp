@@ -2,6 +2,7 @@
 
 #include "types.hpp"
 #include <limits>
+#include <xtensor/xmath.hpp>
 
 namespace molcpp {
 
@@ -14,13 +15,13 @@ struct AABB {
           max{-std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity()} {}
 
     void expand(const Vec3f& p) {
-        min = vmin(min, p);
-        max = vmax(max, p);
+        min = xt::minimum(min, p);
+        max = xt::maximum(max, p);
     }
 
     void expand(const AABB& other) {
-        min = vmin(min, other.min);
-        max = vmax(max, other.max);
+        min = xt::minimum(min, other.min);
+        max = xt::maximum(max, other.max);
     }
 
     int longest_axis() const {
