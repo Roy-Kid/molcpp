@@ -1,16 +1,14 @@
-#include "molcpp/types.hpp"
 #include "molcpp/box.hpp"
 #include "molcpp/neighbor_aabb.hpp"
 #include <iostream>
-#include <vector>
+#include <xtensor/xtensor.hpp>
 
 int main() {
     using namespace molcpp;
     Box box(10.0f, 10.0f, 10.0f, true, true, true);
-    std::vector<Vec3f> pts;
-    for (int i = 0; i < 10; ++i) pts.emplace_back(static_cast<float>(i), 0.0f, 0.0f);
+    xt::xtensor<float, 2> pts = {{0.f,0.f,0.f},{1.f,0.f,0.f},{2.f,0.f,0.f},{3.f,0.f,0.f},{4.f,0.f,0.f},{5.f,0.f,0.f}};
     AABBNeighborQuery nq(box, pts, 4);
-    std::vector<Vec3f> q{{0.1f, 0.0f, 0.0f}, {9.9f, 0.0f, 0.0f}};
+    xt::xtensor<float, 2> q = {{0.1f,0.f,0.f},{4.9f,0.f,0.f}};
     auto [ii, jj, dd] = nq.query(q, 1.25f, false);
     std::cout << "pairs: " << ii.size() << "\n";
     return 0;

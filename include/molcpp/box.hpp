@@ -25,24 +25,24 @@ public:
 
     Vec3f wrap(const Vec3f& p) const {
         Vec3f r = p;
-        if (m_periodic[0]) r.x = wrap_component(r.x, m_Lx);
-        if (m_periodic[1]) r.y = wrap_component(r.y, m_Ly);
-        if (m_periodic[2]) r.z = wrap_component(r.z, m_Lz);
+        if (m_periodic[0]) r[0] = wrap_component(r[0], m_Lx);
+        if (m_periodic[1]) r[1] = wrap_component(r[1], m_Ly);
+        if (m_periodic[2]) r[2] = wrap_component(r[2], m_Lz);
         return r;
     }
 
     Vec3f minimum_image(const Vec3f& dr) const {
         Vec3f out = dr;
-        if (m_periodic[0]) out.x = minimum_image_component(out.x, m_Lx);
-        if (m_periodic[1]) out.y = minimum_image_component(out.y, m_Ly);
-        if (m_periodic[2]) out.z = minimum_image_component(out.z, m_Lz);
+        if (m_periodic[0]) out[0] = minimum_image_component(out[0], m_Lx);
+        if (m_periodic[1]) out[1] = minimum_image_component(out[1], m_Ly);
+        if (m_periodic[2]) out[2] = minimum_image_component(out[2], m_Lz);
         return out;
     }
 
     // Returns the 27 image shift vectors needed for sphere queries up to radius r_max
-    std::vector<Vec3f> compute_sphere_image_shifts(float r_max) const {
+    std::vector<Vec3f> compute_sphere_image_shifts(float /*r_max*/) const {
         std::vector<Vec3f> shifts;
-        shifts.emplace_back(0.0f, 0.0f, 0.0f);
+        shifts.emplace_back(Vec3f{0.0f, 0.0f, 0.0f});
         const int nx = m_periodic[0] ? 3 : 1; // -1, 0, +1
         const int ny = m_periodic[1] ? 3 : 1;
         const int nz = m_periodic[2] ? 3 : 1;
@@ -54,8 +54,6 @@ public:
                     int sz = iz - 1;
                     if (sx == 0 && sy == 0 && sz == 0) continue;
                     Vec3f shift{sx * m_Lx, sy * m_Ly, sz * m_Lz};
-                    // Only include shifts within r_max reach from box boundaries (simple heuristic)
-                    // Keep all periodic images since the sphere may cross each face when r_max > 0
                     shifts.emplace_back(shift);
                 }
             }

@@ -50,7 +50,6 @@ private:
         m_nodes.push_back(node);
 
         if (node.count <= m_leaf_size) {
-            // Leaf node; already stored
             m_nodes[node_index].left = -1;
             m_nodes[node_index].right = -1;
             return node_index;
@@ -62,9 +61,9 @@ private:
         auto comparator = [&](int lhs, int rhs) {
             const Vec3f& a = (*m_points)[lhs];
             const Vec3f& b = (*m_points)[rhs];
-            if (axis == 0) return a.x < b.x;
-            if (axis == 1) return a.y < b.y;
-            return a.z < b.z;
+            if (axis == 0) return a[0] < b[0];
+            if (axis == 1) return a[1] < b[1];
+            return a[2] < b[2];
         };
 
         std::nth_element(m_indices.begin() + start, m_indices.begin() + mid, m_indices.begin() + end,
@@ -75,9 +74,8 @@ private:
 
         m_nodes[node_index].left = left;
         m_nodes[node_index].right = right;
-        m_nodes[node_index].count = 0; // mark as internal
+        m_nodes[node_index].count = 0; // internal
 
-        // Update bbox as union of children for robustness
         m_nodes[node_index].bbox = AABB{};
         m_nodes[node_index].bbox.expand(m_nodes[left].bbox);
         m_nodes[node_index].bbox.expand(m_nodes[right].bbox);

@@ -9,6 +9,8 @@
 #include <cstddef>
 #include <cmath>
 
+#include <xtensor/xtensor.hpp>
+
 #if __has_include(<xsimd/xsimd.hpp>)
   #include <xsimd/xsimd.hpp>
   #define MOLCPP_HAVE_XSIMD 1
@@ -20,27 +22,42 @@ namespace molcpp {
 
 class AABBNeighborQuery {
 public:
-    AABBNeighborQuery(Box box, const std::vector<Vec3f>& points, int leaf_size = 8)
-        : m_box(std::move(box)), m_points(points) {
+    // Construct from xtensor 2D array of shape (N, 3)
+    AABBNeighborQuery(Box box, const xt::xtensor<float, 2>& points, int leaf_size = 8)
+        : m_box(std::move(box)) {
+        const auto& sh = points.shape();
+        if (sh.size() != 2 || sh[1] != 3) {
+            throw std::runtime_error("points must have shape (N, 3)");
+        }
+        const std::size_t n = sh[0];
+        m_points.resize(n);
+        for (std::size_t i = 0; i < n; ++i) {
+            m_points[i] = Vec3f{points(i, 0), points(i, 1), points(i, 2)};
+        }
         m_tree.build(m_points, leaf_size);
         split_components();
     }
 
-    // Returns tuple of (indices_i, indices_j, distances)
-    std::tuple<std::vector<int>, std::vector<int>, std::vector<float>>
-    query(const std::vector<Vec3f>& query_points, float r_max, bool exclude_ii = false) const {
+    // Returns tuple of xtensor arrays (indices_i, indices_j, distances)
+    template <class Arr>
+    auto query(const Arr& query_points, float r_max, bool exclude_ii = false) const
+        -> std::tuple<xt::xtensor<int, 1>, xt::xtensor<int, 1>, xt::xtensor<float, 1>>
+    {
+        if (query_points.dimension() != 2 || query_points.shape(1) != 3) {
+            throw std::runtime_error("query_points must have shape (M, 3)");
+        }
+
         const float r2_max = r_max * r_max;
         std::vector<int> idx_i;
         std::vector<int> idx_j;
         std::vector<float> distances;
-        idx_i.reserve(query_points.size() * 8);
-        idx_j.reserve(query_points.size() * 8);
-        distances.reserve(query_points.size() * 8);
+        idx_i.reserve(query_points.shape(0) * 8);
+        idx_j.reserve(query_points.shape(0) * 8);
+        distances.reserve(query_points.shape(0) * 8);
 
         const auto shifts = m_box.compute_sphere_image_shifts(r_max);
 
-        // Use thread-local buffers to avoid contention
-        #pragma omp parallel if(query_points.size() > 256)
+        #pragma omp parallel if(query_points.shape(0) > 256)
         {
             std::vector<int> tl_i;
             std::vector<int> tl_j;
@@ -50,11 +67,11 @@ public:
             tl_d.reserve(256);
 
             #pragma omp for schedule(static)
-            for (std::ptrdiff_t qi = 0; qi < static_cast<std::ptrdiff_t>(query_points.size()); ++qi) {
-                const Vec3f q = query_points[qi];
+            for (std::ptrdiff_t qi = 0; qi < static_cast<std::ptrdiff_t>(query_points.shape(0)); ++qi) {
+                Vec3f q{query_points(qi, 0), query_points(qi, 1), query_points(qi, 2)};
                 for (const Vec3f& shift : shifts) {
-                    Vec3f qc{q.x + shift.x, q.y + shift.y, q.z + shift.z};
-                    traverse_and_collect(qc, qi, r_max, r2_max, exclude_ii, tl_i, tl_j, tl_d);
+                    Vec3f qc{q[0] + shift[0], q[1] + shift[1], q[2] + shift[2]};
+                    traverse_and_collect(qc, static_cast<int>(qi), r_max, r2_max, exclude_ii, tl_i, tl_j, tl_d);
                 }
             }
 
@@ -66,7 +83,13 @@ public:
             }
         }
 
-        return {std::move(idx_i), std::move(idx_j), std::move(distances)};
+        xt::xtensor<int, 1> ai = xt::zeros<int>({idx_i.size()});
+        xt::xtensor<int, 1> aj = xt::zeros<int>({idx_j.size()});
+        xt::xtensor<float, 1> ad = xt::zeros<float>({distances.size()});
+        for (std::size_t k = 0; k < idx_i.size(); ++k) ai(k) = idx_i[k];
+        for (std::size_t k = 0; k < idx_j.size(); ++k) aj(k) = idx_j[k];
+        for (std::size_t k = 0; k < distances.size(); ++k) ad(k) = distances[k];
+        return {std::move(ai), std::move(aj), std::move(ad)};
     }
 
 private:
@@ -74,9 +97,9 @@ private:
         const size_t n = m_points.size();
         xs.resize(n); ys.resize(n); zs.resize(n);
         for (size_t i = 0; i < n; ++i) {
-            xs[i] = m_points[i].x;
-            ys[i] = m_points[i].y;
-            zs[i] = m_points[i].z;
+            xs[i] = m_points[i][0];
+            ys[i] = m_points[i][1];
+            zs[i] = m_points[i][2];
         }
     }
 
@@ -85,10 +108,9 @@ private:
         const auto& nodes = m_tree.nodes();
         if (nodes.empty()) return;
 
-        // Manual stack to avoid recursion
         int stack[128];
         int sp = 0;
-        stack[sp++] = 0; // root index
+        stack[sp++] = 0;
 
         while (sp > 0) {
             int node_idx = stack[--sp];
@@ -122,7 +144,7 @@ private:
         using batch = xsimd::batch<float>;
         constexpr std::size_t L = batch::size;
 
-        batch qc_x(qc.x), qc_y(qc.y), qc_z(qc.z);
+        batch qc_x(qc[0]), qc_y(qc[1]), qc_z(qc[2]);
         batch Lx_b(Lx), Ly_b(Ly), Lz_b(Lz);
 
         int i = start;
@@ -177,13 +199,12 @@ private:
 #else
         int i = start;
 #endif
-        // Remainder or full scalar loop
         for (; i < end; ++i) {
             int j = idx[i];
             if (exclude_ii && j == qi) continue;
-            float dx = xs[j] - qc.x;
-            float dy = ys[j] - qc.y;
-            float dz = zs[j] - qc.z;
+            float dx = xs[j] - qc[0];
+            float dy = ys[j] - qc[1];
+            float dz = zs[j] - qc[2];
             if (px) dx -= std::round(dx / Lx) * Lx;
             if (py) dy -= std::round(dy / Ly) * Ly;
             if (pz) dz -= std::round(dz / Lz) * Lz;
@@ -199,7 +220,7 @@ private:
     Box m_box;
     std::vector<Vec3f> m_points;
     AABBTree m_tree;
-    std::vector<float> xs, ys, zs; // SoA for SIMD
+    std::vector<float> xs, ys, zs;
 };
 
 } // namespace molcpp

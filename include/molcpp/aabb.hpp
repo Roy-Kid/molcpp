@@ -24,21 +24,20 @@ struct AABB {
     }
 
     int longest_axis() const {
-        Vec3f d{max.x - min.x, max.y - min.y, max.z - min.z};
-        if (d.x >= d.y && d.x >= d.z) return 0;
-        if (d.y >= d.x && d.y >= d.z) return 1;
+        Vec3f d{max[0] - min[0], max[1] - min[1], max[2] - min[2]};
+        if (d[0] >= d[1] && d[0] >= d[2]) return 0;
+        if (d[1] >= d[0] && d[1] >= d[2]) return 1;
         return 2;
     }
 
     bool intersects_sphere(const Vec3f& c, float r) const {
         float r2 = r * r;
-        // Clamp point to box
         float dx = 0.0f;
-        if (c.x < min.x) dx = min.x - c.x; else if (c.x > max.x) dx = c.x - max.x;
+        if (c[0] < min[0]) dx = min[0] - c[0]; else if (c[0] > max[0]) dx = c[0] - max[0];
         float dy = 0.0f;
-        if (c.y < min.y) dy = min.y - c.y; else if (c.y > max.y) dy = c.y - max.y;
+        if (c[1] < min[1]) dy = min[1] - c[1]; else if (c[1] > max[1]) dy = c[1] - max[1];
         float dz = 0.0f;
-        if (c.z < min.z) dz = min.z - c.z; else if (c.z > max.z) dz = c.z - max.z;
+        if (c[2] < min[2]) dz = min[2] - c[2]; else if (c[2] > max[2]) dz = c[2] - max[2];
         return dx*dx + dy*dy + dz*dz <= r2;
     }
 };
