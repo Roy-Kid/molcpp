@@ -1,7 +1,6 @@
 #pragma once
 
 #include "types.hpp"
-#include "box.hpp"
 #include "aabb_tree.hpp"
 
 #include <vector>
@@ -20,22 +19,29 @@
 
 namespace molcpp {
 
+struct BoxParams {
+    float Lx;
+    float Ly;
+    float Lz;
+    bool periodic_x;
+    bool periodic_y;
+    bool periodic_z;
+};
+
 class AABBNeighborQuery {
 public:
-    // Construct from xtensor 2D array of shape (N, 3)
-    AABBNeighborQuery(Box box, const xt::xtensor<float, 2>& points, int leaf_size = 8)
-        : m_box(std::move(box)) {
-        const auto& sh = points.shape();
-        if (sh.size() != 2 || sh[1] != 3) {
-            throw std::runtime_error("points must have shape (N, 3)");
-        }
-        const std::size_t n = sh[0];
-        m_points.resize(n);
-        for (std::size_t i = 0; i < n; ++i) {
-            m_points[i] = Vec3f{points(i, 0), points(i, 1), points(i, 2)};
-        }
-        m_tree.build(m_points, leaf_size);
-        split_components();
+    // Construct from xtensor 2D array of shape (N, 3) and raw box parameters
+    AABBNeighborQuery(const xt::xtensor<float, 2>& points, const BoxParams& box, int leaf_size = 8)
+        : m_Lx(box.Lx), m_Ly(box.Ly), m_Lz(box.Lz), m_px(box.periodic_x), m_py(box.periodic_y), m_pz(box.periodic_z) {
+        init_points(points, leaf_size);
+    }
+
+    // Construct from xtensor 2D array and a Box-like object with Lx(), Ly(), Lz(), periodic_x(), periodic_y(), periodic_z()
+    template <class BoxLike>
+    AABBNeighborQuery(const xt::xtensor<float, 2>& points, const BoxLike& box_like, int leaf_size = 8)
+        : m_Lx(box_like.Lx()), m_Ly(box_like.Ly()), m_Lz(box_like.Lz()),
+          m_px(box_like.periodic_x()), m_py(box_like.periodic_y()), m_pz(box_like.periodic_z()) {
+        init_points(points, leaf_size);
     }
 
     // Returns tuple of xtensor arrays (indices_i, indices_j, distances)
@@ -55,7 +61,7 @@ public:
         idx_j.reserve(query_points.shape(0) * 8);
         distances.reserve(query_points.shape(0) * 8);
 
-        const auto shifts = m_box.compute_sphere_image_shifts(r_max);
+        const auto shifts = compute_sphere_image_shifts(r_max);
 
         #pragma omp parallel if(query_points.shape(0) > 256)
         {
@@ -93,6 +99,41 @@ public:
     }
 
 private:
+    void init_points(const xt::xtensor<float, 2>& points, int leaf_size) {
+        const auto& sh = points.shape();
+        if (sh.size() != 2 || sh[1] != 3) {
+            throw std::runtime_error("points must have shape (N, 3)");
+        }
+        const std::size_t n = sh[0];
+        m_points.resize(n);
+        for (std::size_t i = 0; i < n; ++i) {
+            m_points[i] = Vec3f{points(i, 0), points(i, 1), points(i, 2)};
+        }
+        m_tree.build(m_points, leaf_size);
+        split_components();
+    }
+
+    std::vector<Vec3f> compute_sphere_image_shifts(float /*r_max*/) const {
+        std::vector<Vec3f> shifts;
+        shifts.emplace_back(Vec3f{0.0f, 0.0f, 0.0f});
+        const int nx = m_px ? 3 : 1;
+        const int ny = m_py ? 3 : 1;
+        const int nz = m_pz ? 3 : 1;
+        for (int ix = 0; ix < nx; ++ix) {
+            for (int iy = 0; iy < ny; ++iy) {
+                for (int iz = 0; iz < nz; ++iz) {
+                    int sx = ix - 1;
+                    int sy = iy - 1;
+                    int sz = iz - 1;
+                    if (sx == 0 && sy == 0 && sz == 0) continue;
+                    Vec3f shift{sx * m_Lx, sy * m_Ly, sz * m_Lz};
+                    shifts.emplace_back(shift);
+                }
+            }
+        }
+        return shifts;
+    }
+
     void split_components() {
         const size_t n = m_points.size();
         xs.resize(n); ys.resize(n); zs.resize(n);
@@ -133,14 +174,14 @@ private:
         int start = node.start;
         int end = node.start + node.count;
 
-        const float Lx = m_box.Lx();
-        const float Ly = m_box.Ly();
-        const float Lz = m_box.Lz();
-        const bool px = m_box.periodic_x();
-        const bool py = m_box.periodic_y();
-        const bool pz = m_box.periodic_z();
-
 #if MOLCPP_HAVE_XSIMD
+        const float Lx = m_Lx;
+        const float Ly = m_Ly;
+        const float Lz = m_Lz;
+        const bool px = m_px;
+        const bool py = m_py;
+        const bool pz = m_pz;
+
         using batch = xsimd::batch<float>;
         constexpr std::size_t L = batch::size;
 
@@ -205,9 +246,9 @@ private:
             float dx = xs[j] - qc[0];
             float dy = ys[j] - qc[1];
             float dz = zs[j] - qc[2];
-            if (px) dx -= std::round(dx / Lx) * Lx;
-            if (py) dy -= std::round(dy / Ly) * Ly;
-            if (pz) dz -= std::round(dz / Lz) * Lz;
+            if (m_px) dx -= std::round(dx / m_Lx) * m_Lx;
+            if (m_py) dy -= std::round(dy / m_Ly) * m_Ly;
+            if (m_pz) dz -= std::round(dz / m_Lz) * m_Lz;
             float d2 = dx * dx + dy * dy + dz * dz;
             if (d2 <= r2_max) {
                 out_i.push_back(qi);
@@ -217,7 +258,11 @@ private:
         }
     }
 
-    Box m_box;
+    // box
+    float m_Lx{0}, m_Ly{0}, m_Lz{0};
+    bool m_px{true}, m_py{true}, m_pz{true};
+
+    // points
     std::vector<Vec3f> m_points;
     AABBTree m_tree;
     std::vector<float> xs, ys, zs;
