@@ -2,6 +2,7 @@
 
 #include "types.hpp"
 #include "aabb_tree.hpp"
+#include "NeighborList.hpp"
 
 #include <vector>
 #include <tuple>
@@ -92,6 +93,11 @@ public:
         for (std::size_t k = 0; k < idx_j.size(); ++k) aj(k) = idx_j[k];
         for (std::size_t k = 0; k < distances.size(); ++k) ad(k) = distances[k];
         return {std::move(ai), std::move(aj), std::move(ad)};
+    }
+
+    NeighborList query_list(const xt::xtensor<float, 2>& query_points, float r_max, bool exclude_ii = false) const {
+        auto [ai, aj, ad] = query(query_points, r_max, exclude_ii);
+        return NeighborList(std::move(ai), std::move(aj), std::move(ad));
     }
 
 private:
