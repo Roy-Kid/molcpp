@@ -80,7 +80,7 @@ if(MOLCPP_BUILD_TEST)
     target_link_libraries(molcpp_aabb_test PRIVATE OpenMP::OpenMP_CXX)
   endif()
 
-  add_executable(molcpp_catch2_tests tests/catch2/test_neighbor_query.cpp)
+  add_executable(molcpp_catch2_tests tests/catch2/test_neighbor_query.cpp tests/catch2/test_locality_neighbor_query.cpp tests/catch2/test_locality_neighbor_list.cpp)
   target_include_directories(molcpp_catch2_tests PRIVATE include ${MOLCPP_EXTERNAL_INCLUDE_DIRS})
   if(OpenMP_CXX_FOUND)
     target_link_libraries(molcpp_catch2_tests PRIVATE OpenMP::OpenMP_CXX)
