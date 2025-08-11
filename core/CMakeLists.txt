@@ -97,6 +97,20 @@ add_library(molcpp_objects OBJECT ${molcpp_objects_sources})
 
 target_link_xtensor(molcpp_objects)
 
+# Link OpenMP if available
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(molcpp_objects PUBLIC OpenMP::OpenMP_CXX)
+    target_compile_definitions(molcpp_objects PUBLIC _OPENMP)
+endif()
+
+# Link xsimd if available for SIMD support
+find_package(xsimd)
+if(xsimd_FOUND)
+    target_link_libraries(molcpp_objects PUBLIC xsimd)
+    target_compile_definitions(molcpp_objects PUBLIC XTENSOR_USE_XSIMD)
+endif()
+
 target_compile_features(molcpp_objects PRIVATE cxx_std_17 c_std_99)
 
 target_include_directories(molcpp_objects SYSTEM BEFORE PRIVATE ${EXTERNAL_INCLUDES})

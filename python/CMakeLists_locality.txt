@@ -1,0 +1,59 @@
+cmake_minimum_required(VERSION 3.16)
+project(molcpp_locality_python)
+
+# Find required packages
+find_package(pybind11 REQUIRED)
+find_package(xtensor REQUIRED)
+find_package(xtensor-python REQUIRED)
+
+# Find OpenMP if available
+find_package(OpenMP)
+
+# Find xsimd if available
+find_package(xsimd)
+
+# Create the Python module
+pybind11_add_module(molcpp_locality molcpp_locality.cpp)
+
+# Set C++ standard
+target_compile_features(molcpp_locality PRIVATE cxx_std_17)
+
+# Include directories
+target_include_directories(molcpp_locality PRIVATE
+    ${CMAKE_SOURCE_DIR}/../core/include
+    ${CMAKE_SOURCE_DIR}/../core/src
+)
+
+# Link libraries
+target_link_libraries(molcpp_locality PRIVATE
+    xtensor
+    xtensor-python
+    pybind11::module
+)
+
+# Link OpenMP if found
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(molcpp_locality PRIVATE OpenMP::OpenMP_CXX)
+    target_compile_definitions(molcpp_locality PRIVATE _OPENMP)
+endif()
+
+# Link xsimd if found
+if(xsimd_FOUND)
+    target_link_libraries(molcpp_locality PRIVATE xsimd)
+    target_compile_definitions(molcpp_locality PRIVATE XTENSOR_USE_XSIMD)
+endif()
+
+# Add the core source files that are needed
+set(CORE_SOURCES
+    ${CMAKE_SOURCE_DIR}/../core/src/locality/AABBTree.cpp
+    ${CMAKE_SOURCE_DIR}/../core/src/locality/AABBQuery.cpp
+)
+
+target_sources(molcpp_locality PRIVATE ${CORE_SOURCES})
+
+# Set output name and location
+set_target_properties(molcpp_locality PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "molcpp_locality"
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
+)
