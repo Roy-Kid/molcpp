@@ -1,6 +1,6 @@
 #pragma once
 
-#include "types.hpp"
+#include "nl_types.hpp"
 #include "aabb_tree.hpp"
 #include "NeighborList.hpp"
 

@@ -3,7 +3,7 @@
 #include <xtensor-python/pytensor.hpp>
 #include <xtensor-python/pyarray.hpp>
 
-#include "molcpp/types.hpp"
+#include "molcpp/nl_types.hpp"
 #include "molcpp/AABBQuery.hpp"
 
 namespace py = pybind11;
@@ -19,8 +19,6 @@ PYBIND11_MODULE(molcpp_aabb, m) {
                     throw std::runtime_error("points must have shape (N, 3)");
                 }
                 xt::xtensor<float, 2> pts = points;
-                // Expect the Python Box to expose methods: Lx(), Ly(), Lz(), periodic_x(), periodic_y(), periodic_z()
-                // We will pass the box through to the templated ctor using a small shim
                 struct PyBoxShim {
                     py::object obj;
                     float Lx() const { return obj.attr("Lx")().cast<float>(); }
