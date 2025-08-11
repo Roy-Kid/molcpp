@@ -28,25 +28,21 @@ struct BoxParams {
     bool periodic_z;
 };
 
-class AABBNeighborQuery {
+class AABBQuery {
 public:
-    // Construct from xtensor 2D array of shape (N, 3) and raw box parameters
-    AABBNeighborQuery(const xt::xtensor<float, 2>& points, const BoxParams& box, int leaf_size = 8)
+    AABBQuery(const xt::xtensor<float, 2>& points, const BoxParams& box, int leaf_size = 8)
         : m_Lx(box.Lx), m_Ly(box.Ly), m_Lz(box.Lz), m_px(box.periodic_x), m_py(box.periodic_y), m_pz(box.periodic_z) {
         init_points(points, leaf_size);
     }
 
-    // Construct from xtensor 2D array and a Box-like object with Lx(), Ly(), Lz(), periodic_x(), periodic_y(), periodic_z()
     template <class BoxLike>
-    AABBNeighborQuery(const xt::xtensor<float, 2>& points, const BoxLike& box_like, int leaf_size = 8)
+    AABBQuery(const xt::xtensor<float, 2>& points, const BoxLike& box_like, int leaf_size = 8)
         : m_Lx(box_like.Lx()), m_Ly(box_like.Ly()), m_Lz(box_like.Lz()),
           m_px(box_like.periodic_x()), m_py(box_like.periodic_y()), m_pz(box_like.periodic_z()) {
         init_points(points, leaf_size);
     }
 
-    // Returns tuple of xtensor arrays (indices_i, indices_j, distances)
-    template <class Arr>
-    auto query(const Arr& query_points, float r_max, bool exclude_ii = false) const
+    auto query(const xt::xtensor<float, 2>& query_points, float r_max, bool exclude_ii = false) const
         -> std::tuple<xt::xtensor<int, 1>, xt::xtensor<int, 1>, xt::xtensor<float, 1>>
     {
         if (query_points.dimension() != 2 || query_points.shape(1) != 3) {
