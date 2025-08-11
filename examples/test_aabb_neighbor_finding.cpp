@@ -5,11 +5,10 @@
 #include <xtensor/xio.hpp>
 
 #include <molcpp/locality/AABBQuery.hpp>
-#include <molcpp/box/Box.hpp>
+#include <molcpp/spatial/box.hpp>
 
 using namespace molcpp;
 using namespace molcpp::locality;
-using namespace molcpp::box;
 
 int main() {
     std::cout << "AABB Neighbor Finding Example\n";
@@ -17,7 +16,7 @@ int main() {
 
     // Create a cubic box
     const double L = 10.0;
-    Box box(L, L, L);
+    Box box({L, L, L});
     std::cout << "Created box with dimensions: " << L << " x " << L << " x " << L << "\n";
 
     // Generate random points
@@ -117,9 +116,8 @@ int main() {
         // Query with periodic boundaries
         auto nlist_periodic = query.query(edge_points, args);
         
-        // Create non-periodic box
-        Box non_periodic_box(L, L, L);
-        non_periodic_box.setPeriodic(false, false, false);
+        // Create effectively non-periodic box (very large)
+        Box non_periodic_box({L*1000, L*1000, L*1000});
         AABBQuery query_np(non_periodic_box, points);
         
         auto nlist_non_periodic = query_np.query(edge_points, args);

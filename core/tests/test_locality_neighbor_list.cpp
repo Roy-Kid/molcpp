@@ -6,11 +6,10 @@
 
 #include <molcpp/locality/NeighborList.hpp>
 #include <molcpp/locality/AABBQuery.hpp>
-#include <molcpp/box/Box.hpp>
+#include <molcpp/spatial/box.hpp>
 
 using namespace molcpp;
 using namespace molcpp::locality;
-using namespace molcpp::box;
 
 // Helper function to create random points
 xt::xarray<double> makeRandomPoints(size_t N, double L) {
@@ -171,7 +170,7 @@ TEST_CASE("AABBQuery with NeighborList", "[aabbquery][neighborlist]") {
     const size_t N = 40;
     
     // Create a box and random points
-    Box box(L, L, L);
+    Box box({L, L, L});
     auto points = makeRandomPoints(N, L);
     
     // Create AABBQuery

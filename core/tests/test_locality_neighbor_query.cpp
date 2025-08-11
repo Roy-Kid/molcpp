@@ -5,11 +5,10 @@
 #include <xtensor/xview.hpp>
 
 #include <molcpp/locality/AABBQuery.hpp>
-#include <molcpp/box/Box.hpp>
+#include <molcpp/spatial/box.hpp>
 
 using namespace molcpp;
 using namespace molcpp::locality;
-using namespace molcpp::box;
 
 // Helper to create a simple cubic lattice
 xt::xarray<double> makeSimpleCubicLattice(size_t n, double a) {
@@ -38,7 +37,7 @@ TEST_CASE("AABBQuery construction", "[aabbquery]") {
     }
     
     SECTION("Construction with box and points") {
-        Box box(10.0, 10.0, 10.0);
+        Box box({10.0, 10.0, 10.0});
         xt::xarray<double> points = xt::random::rand<double>({10, 3}) * 10.0 - 5.0;
         
         AABBQuery query(box, points);
@@ -55,7 +54,7 @@ TEST_CASE("AABBQuery ball queries", "[aabbquery]") {
     const double a = 1.0;  // lattice constant
     const double L = n * a * 1.5;  // Box size
     
-    Box box(L, L, L);
+    Box box({L, L, L});
     auto points = makeSimpleCubicLattice(n, a);
     AABBQuery query(box, points);
     
@@ -123,7 +122,7 @@ TEST_CASE("AABBQuery k-nearest neighbors", "[aabbquery]") {
     const size_t N = 100;
     const double L = 10.0;
     
-    Box box(L, L, L);
+    Box box({L, L, L});
     xt::xarray<double> points = xt::random::rand<double>({N, 3}) * L - L/2.0;
     AABBQuery query(box, points);
     
@@ -181,7 +180,7 @@ TEST_CASE("AABBQuery with periodic boundaries", "[aabbquery]") {
     const double a = 1.0;
     
     // Create box and points
-    Box box(L, L, L);
+    Box box({L, L, L});
     auto points = makeSimpleCubicLattice(n, a);
     AABBQuery query(box, points);
     
@@ -203,8 +202,9 @@ TEST_CASE("AABBQuery with periodic boundaries", "[aabbquery]") {
     }
     
     SECTION("Non-periodic box") {
-        Box non_periodic_box(L, L, L);
-        non_periodic_box.setPeriodic(false, false, false);
+        // For a free box (non-periodic), we can use a very large box
+        // that effectively removes periodic boundaries
+        Box non_periodic_box({L*1000, L*1000, L*1000});
         
         AABBQuery query_np(non_periodic_box, points);
         
@@ -232,8 +232,8 @@ TEST_CASE("AABBQuery with 2D box", "[aabbquery]") {
     const double L = 10.0;
     const size_t N = 50;
     
-    // Create 2D box
-    Box box2d(L, L, 0.0, 0.0, 0.0, 0.0, true);
+    // Create 2D box (using very small z dimension)
+    Box box2d({L, L, 0.001});
     
     // Create 2D points (z = 0)
     xt::xarray<double> points = xt::zeros<double>({N, 3});

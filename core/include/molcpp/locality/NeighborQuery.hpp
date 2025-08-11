@@ -8,7 +8,7 @@
 #include <xtensor/xarray.hpp>
 
 #include "NeighborList.hpp"
-#include "../box/Box.hpp"
+#include "../spatial/box.hpp"
 #include "../types.hpp"
 
 namespace molcpp {
@@ -70,7 +70,7 @@ public:
     NeighborQuery() : m_n_points(0) {}
 
     //! Constructor with box and points
-    NeighborQuery(const box::Box& box, const xt::xarray<double>& points)
+    NeighborQuery(const Box& box, const xt::xarray<double>& points)
         : m_box(box), m_points(points), m_n_points(points.shape(0)) {
         if (points.dimension() != 2 || points.shape(1) != 3) {
             throw std::invalid_argument("Points must be an Nx3 array");
@@ -130,7 +130,7 @@ public:
     }
 
     //! Get the box
-    const box::Box& getBox() const { return m_box; }
+    const Box& getBox() const { return m_box; }
 
     //! Get the points
     const xt::xarray<double>& getPoints() const { return m_points; }
@@ -165,7 +165,7 @@ protected:
         }
     }
 
-    box::Box m_box;                    //!< Simulation box
+    Box m_box;                    //!< Simulation box
     xt::xarray<double> m_points;       //!< Point positions
     size_t m_n_points;                 //!< Number of points
 };

@@ -9,13 +9,12 @@
 #include <molcpp/locality/AABBQuery.hpp>
 #include <molcpp/locality/NeighborList.hpp>
 #include <molcpp/locality/NeighborQuery.hpp>
-#include <molcpp/box/Box.hpp>
+#include <molcpp/spatial/box.hpp>
 
 namespace py = pybind11;
 
 using namespace molcpp;
 using namespace molcpp::locality;
-using namespace molcpp::box;
 
 PYBIND11_MODULE(molcpp_locality, m) {
     m.doc() = "Molcpp locality module - AABB-based neighbor finding";
@@ -25,63 +24,35 @@ PYBIND11_MODULE(molcpp_locality, m) {
 
     // Box class
     py::class_<Box>(m, "Box")
-        .def(py::init<>(), "Create a unit cubic box")
-        .def(py::init<double, double, double, double, double, double, bool>(),
-             py::arg("Lx"), py::arg("Ly"), py::arg("Lz"),
-             py::arg("xy") = 0.0, py::arg("xz") = 0.0, py::arg("yz") = 0.0,
-             py::arg("is_2d") = false,
-             "Create a box with specified dimensions")
-        .def_property_readonly("Lx", &Box::getLx, "Box length in x direction")
-        .def_property_readonly("Ly", &Box::getLy, "Box length in y direction")
-        .def_property_readonly("Lz", &Box::getLz, "Box length in z direction")
-        .def_property_readonly("xy", &Box::getxy, "Tilt factor xy")
-        .def_property_readonly("xz", &Box::getxz, "Tilt factor xz")
-        .def_property_readonly("yz", &Box::getyz, "Tilt factor yz")
-        .def_property_readonly("volume", &Box::getVolume, "Box volume")
-        .def_property_readonly("is_2d", &Box::is2D, "Whether box is 2D")
-        .def("get_vectors", &Box::getVectors, "Get box vectors as 3x3 matrix")
-        .def("get_nearest_plane_distance", &Box::getNearestPlaneDistance,
-             "Get nearest plane distances")
-        .def("wrap", [](const Box& box, const xt::pyarray<double>& pos) {
-            Vec3 vec_pos;
-            for (size_t i = 0; i < 3; ++i) {
-                vec_pos(i) = pos(i);
+        .def(py::init<>(), "Create an infinity box")
+        .def(py::init<const Mat3&>(), py::arg("matrix"), "Create box from matrix")
+        .def(py::init([](const std::vector<double>& lengths) {
+            if (lengths.size() != 3) {
+                throw std::invalid_argument("Lengths must have 3 elements");
             }
-            Vec3 wrapped = box.wrap(vec_pos);
-            xt::pyarray<double> result = xt::zeros<double>({3});
-            for (size_t i = 0; i < 3; ++i) {
-                result(i) = wrapped(i);
-            }
-            return result;
-        }, py::arg("position"), "Wrap position into box")
-        .def("minimum_image", [](const Box& box, 
-                                const xt::pyarray<double>& r_i,
-                                const xt::pyarray<double>& r_j) {
-            Vec3 vec_i, vec_j;
-            for (size_t i = 0; i < 3; ++i) {
-                vec_i(i) = r_i(i);
-                vec_j(i) = r_j(i);
-            }
-            Vec3 dr = box.minimumImage(vec_i, vec_j);
-            xt::pyarray<double> result = xt::zeros<double>({3});
-            for (size_t i = 0; i < 3; ++i) {
-                result(i) = dr(i);
-            }
-            return result;
-        }, py::arg("r_i"), py::arg("r_j"), "Compute minimum image vector")
-        .def("distance", [](const Box& box,
-                           const xt::pyarray<double>& r_i,
-                           const xt::pyarray<double>& r_j) {
-            Vec3 vec_i, vec_j;
-            for (size_t i = 0; i < 3; ++i) {
-                vec_i(i) = r_i(i);
-                vec_j(i) = r_j(i);
-            }
-            return box.distance(vec_i, vec_j);
-        }, py::arg("r_i"), py::arg("r_j"), "Compute minimum image distance")
-        .def("set_periodic", &Box::setPeriodic,
-             py::arg("x"), py::arg("y"), py::arg("z"),
-             "Set periodic boundary conditions");
+            return Box({lengths[0], lengths[1], lengths[2]});
+        }), py::arg("lengths"), "Create orthogonal box from lengths")
+        .def_static("from_lengths_angles", &Box::from_lengths_angles,
+                   py::arg("lengths"), py::arg("angles"),
+                   "Create box from lengths and angles")
+        .def("get_matrix", &Box::get_matrix, "Get box matrix")
+        .def("get_inv", &Box::get_inv, "Get inverse box matrix")
+        .def("get_lengths", &Box::get_lengths, "Get box lengths")
+        .def("get_angles", &Box::get_angles, "Get box angles")
+        .def("get_volume", &Box::get_volume, "Get box volume")
+        .def("get_distance_between_faces", &Box::get_distance_between_faces,
+             "Get distance between faces")
+        .def("set_lengths", &Box::set_lengths, py::arg("lengths"))
+        .def("set_angles", &Box::set_angles, py::arg("angles"))
+        .def("set_matrix", &Box::set_matrix, py::arg("matrix"))
+        .def("set_lengths_angles", &Box::set_lengths_angles,
+             py::arg("lengths"), py::arg("angles"))
+        .def("wrap", &Box::wrap, py::arg("xyz"), "Wrap coordinates into box")
+        .def("minimum_image", &Box::minimum_image, 
+             py::arg("r1"), py::arg("r2"), "Compute minimum image vector")
+        .def("is_periodic", &Box::is_periodic, "Get periodicity flags")
+        .def("volume", &Box::volume, "Get box volume")
+        .def("boundary", &Box::boundary, "Get boundary extents");
 
     // QueryType enum
     py::enum_<QueryType>(m, "QueryType")

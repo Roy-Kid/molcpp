@@ -9,7 +9,7 @@
 
 #include "AABBTree.hpp"
 #include "NeighborQuery.hpp"
-#include "../box/Box.hpp"
+#include "../spatial/box.hpp"
 
 namespace molcpp {
 namespace locality {
@@ -24,7 +24,7 @@ public:
     AABBQuery() : NeighborQuery() {}
 
     //! Constructor with box and points
-    AABBQuery(const box::Box& box, const xt::xarray<double>& points)
+    AABBQuery(const Box& box, const xt::xarray<double>& points)
         : NeighborQuery(box, points) {
         buildTree();
     }
@@ -75,13 +75,13 @@ protected:
 
             if (args.r_guess == DEFAULT_R_GUESS) {
                 // Estimate based on uniform density
-                double volume = m_box.getVolume();
+                double volume = m_box.get_volume();
                 double density = static_cast<double>(m_n_points) / volume;
                 double r_guess = std::cbrt((3.0 * args.num_neighbors) / (4.0 * M_PI * density));
                 
                 // Limit by box dimensions
-                Vec3 nearest_plane = m_box.getNearestPlaneDistance();
-                double min_plane = std::min({nearest_plane(0), nearest_plane(1), nearest_plane(2)});
+                Vec3 distances = m_box.get_distance_between_faces();
+                double min_plane = std::min({distances(0), distances(1), distances(2)});
                 args.r_guess = std::min(r_guess, min_plane / 2.0);
             }
         }
@@ -194,7 +194,18 @@ private:
             for (size_t j = 0; j < 3; ++j) {
                 point_pos(j) = m_points(it->second, j);
             }
-            Vec3 dr = m_box.minimumImage(query_point, point_pos);
+            // Calculate minimum image distance vector
+            xt::xarray<double> q_arr = xt::zeros<double>({3});
+            xt::xarray<double> p_arr = xt::zeros<double>({3});
+            for (size_t j = 0; j < 3; ++j) {
+                q_arr(j) = query_point(j);
+                p_arr(j) = point_pos(j);
+            }
+            auto dr_arr = m_box.minimum_image(q_arr, p_arr);
+            Vec3 dr;
+            for (size_t j = 0; j < 3; ++j) {
+                dr(j) = dr_arr(j);
+            }
             nlist.addBond(query_idx, it->second, it->first, 1.0, dr);
         }
     }
@@ -204,16 +215,20 @@ private:
         std::vector<Vec3> images;
         images.push_back(Vec3{0.0, 0.0, 0.0});  // Original position
         
-        if (!m_box.isPeriodicX() && !m_box.isPeriodicY() && !m_box.isPeriodicZ()) {
+        auto periodic = m_box.is_periodic();
+        if (!periodic[0] && !periodic[1] && !periodic[2]) {
             return images;  // No periodic boundaries
         }
         
-        // Calculate number of images needed in each direction
-        int nx = m_box.isPeriodicX() ? static_cast<int>(std::ceil(r_max / m_box.getLx())) : 0;
-        int ny = m_box.isPeriodicY() ? static_cast<int>(std::ceil(r_max / m_box.getLy())) : 0;
-        int nz = m_box.isPeriodicZ() ? static_cast<int>(std::ceil(r_max / m_box.getLz())) : 0;
+        // Get box lengths
+        Vec3 lengths = m_box.get_lengths();
         
-        Mat3 box_vectors = m_box.getVectors();
+        // Calculate number of images needed in each direction
+        int nx = periodic[0] ? static_cast<int>(std::ceil(r_max / lengths(0))) : 0;
+        int ny = periodic[1] ? static_cast<int>(std::ceil(r_max / lengths(1))) : 0;
+        int nz = periodic[2] ? static_cast<int>(std::ceil(r_max / lengths(2))) : 0;
+        
+        Mat3 box_matrix = m_box.get_matrix();
         
         for (int ix = -nx; ix <= nx; ++ix) {
             for (int iy = -ny; iy <= ny; ++iy) {
@@ -222,9 +237,9 @@ private:
                     
                     Vec3 image;
                     for (size_t i = 0; i < 3; ++i) {
-                        image(i) = ix * box_vectors(i, 0) + 
-                                  iy * box_vectors(i, 1) + 
-                                  iz * box_vectors(i, 2);
+                        image(i) = ix * box_matrix(i, 0) + 
+                                  iy * box_matrix(i, 1) + 
+                                  iz * box_matrix(i, 2);
                     }
                     images.push_back(image);
                 }
