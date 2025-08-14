@@ -28,16 +28,19 @@ bool InsideCube::isin(const xt::xarray<double>& coords) const {
         throw std::invalid_argument("Coordinates must have shape (n, 3)");
     }
 
+    const size_t n_particles = coords.shape(0);
+    
     // Vectorized (numpy-style) check using xtensor
     auto lower = lo_ - TOLERANCE;
     auto upper = lo_ + lengths_ + TOLERANCE;
-    auto coords_view = xt::view(coords, xt::all(), xt::range(0, 3));
-    auto ge_lower = coords_view >= lower;
-    auto le_upper = coords_view <= upper;
-    auto in_bounds = ge_lower && le_upper;
+    auto ge_lower = xt::all(xt::view(coords, xt::all(), xt::range(0, 3)) >= lower, 1);
+    auto le_upper = xt::all(xt::view(coords, xt::all(), xt::range(0, 3)) <= upper, 1);
+    auto in_bounds = xt::all(ge_lower && le_upper);
+    if (!in_bounds()) {
+        return false;
+    }
     
-    // Check if all particles and all dimensions are within bounds
-    return xt::all(in_bounds);  // Check if all elements are true
+    return true;
 }
 
 xt::xarray<bool> InsideCube::mask(const xt::xarray<double>& coords) const {

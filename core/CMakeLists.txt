@@ -22,6 +22,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${PROJECT_SOURCE_DIR}/cmake")
 
 # Include dependency management
 include(deps)
+find_or_fetch_xtensor()
 
 if (POLICY CMP0042)
     cmake_policy(SET CMP0042 NEW) # OSX RPATH handling
@@ -42,7 +43,6 @@ option(MOLCPP_BUILD_BENCHMARKS "Build performance benchmarks." OFF)
 option(MOLCPP_BUILD_DOCUMENTATION "Build the documentation." OFF)
 option(MOLCPP_USE_WARNINGS "Compile the code with warnings (default in debug mode)" OFF)
 option(MOLCPP_USE_CLANG_TIDY "Compile the code with clang-tidy warnings" OFF)
-option(MOLCPP_USE_INCLUDE_WHAT_YOU_USE "Compile the code with include-what-you-use warnings" OFF)
 option(MOLCPP_SYSTEM_ZLIB "Use the system zlib instead of the internal one" OFF)
 option(MOLCPP_SYSTEM_LZMA "Use the system lzma instead of the internal one" OFF)
 option(MOLCPP_SYSTEM_BZIP2 "Use the system bzip2 instead of the internal one" OFF)
@@ -70,7 +70,6 @@ endif()
 
 include(CompilerFlags)
 include(ClangTidy)
-include(IncludeWhatYouUse)
 
 if(${MOLCPP_USE_WARNINGS})
     # Make sure to have asserts compiled
@@ -94,10 +93,8 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MOLCPP_SANITIZERS}")
 file(GLOB_RECURSE molcpp_objects_sources src/**.cpp)
 
 add_library(molcpp_objects OBJECT ${molcpp_objects_sources})
-
-target_link_xtensor(molcpp_objects)
-
 target_compile_features(molcpp_objects PRIVATE cxx_std_17 c_std_99)
+setup_xtensor(molcpp_objects)
 
 target_include_directories(molcpp_objects SYSTEM BEFORE PRIVATE ${EXTERNAL_INCLUDES})
 target_include_directories(molcpp_objects SYSTEM BEFORE PRIVATE ${ZLIB_INCLUDE_DIRS} ${LIBLZMA_INCLUDE_DIRS})
@@ -145,7 +142,6 @@ if(WIN32)
 endif()
 
 target_use_clang_tidy(molcpp_objects)
-target_use_include_what_you_use(molcpp_objects)
 
 set(MOLCPP_OBJECTS
     $<TARGET_OBJECTS:molcpp_objects>
@@ -160,8 +156,6 @@ set(MOLCPP_OBJECTS
 
 # Add the main molcpp library
 add_library(molcpp ${MOLCPP_OBJECTS})
-
-target_link_xtensor(molcpp)
 
 target_compile_features(molcpp PUBLIC cxx_std_17 c_std_99)
 

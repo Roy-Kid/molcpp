@@ -1,10 +1,10 @@
 function(target_use_clang_tidy _target_)
-    if (${CHFL_USE_CLANG_TIDY})
+    if (${MOLCPP_USE_CLANG_TIDY})
         set_target_properties(${_target_} PROPERTIES CXX_CLANG_TIDY ${CHEMFILES_CLANG_TIDY})
     endif()
 endfunction()
 
-if (NOT ${CHFL_USE_CLANG_TIDY})
+if (NOT ${MOLCPP_USE_CLANG_TIDY})
     return()
 endif()
 
@@ -44,7 +44,7 @@ if (CLANG_TIDY_EXE)
     list(APPEND CHEMFILES_CLANG_TIDY "-header-filter='${CMAKE_SOURCE_DIR}/*'")
 else()
     message(WARNING
-        "CHFL_USE_CLANG_TIDY is enabled but clang-tidy is not found. "
+        "MOLCPP_USE_CLANG_TIDY is enabled but clang-tidy is not found. "
         "Set CLANG_TIDY_EXE to clang-tidy path."
     )
 endif()
