@@ -2,6 +2,7 @@
 
 Research-first rule
 - Before writing or refactoring xtensor code, query the official xtensor docs via MCP/context7. If that is unavailable or insufficient, then consult headers or source code. Do not assume non-existent APIs (e.g., xt::all does not support an axis parameter).
+- For xtensor ecosystem libraries (xtensor, xtensor-blas, xtensor-simd, xtensor-python, xtensor-xsimd), always query MCP/context7 first for accurate documentation and API details before implementing or debugging.
 
 Core Constraints
 - Write NumPy-style vectorized code. No explicit for loops over array elements.

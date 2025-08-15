@@ -1,29 +1,7 @@
-cmake_minimum_required(VERSION 4.1)
+# Core library CMakeLists.txt
+# This file is included from the root CMakeLists.txt
 
-# Read version from file
-file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" MOLCPP_FULL_VERSION)
-string(STRIP "${MOLCPP_FULL_VERSION}" MOLCPP_FULL_VERSION)
-string(REGEX REPLACE "([0-9]*)\\.([0-9]*)\\.([0-9]*).*" "\\1.\\2.\\3" MOLCPP_VERSION ${MOLCPP_FULL_VERSION})
-
-project(molcpp-core LANGUAGES C CXX VERSION "${MOLCPP_VERSION}")
-set(PROJECT_VERSION ${MOLCPP_FULL_VERSION})
-
-if(NOT "${LAST_CMAKE_VERSION}" VERSION_EQUAL ${CMAKE_VERSION})
-    set(LAST_CMAKE_VERSION ${CMAKE_VERSION} CACHE INTERNAL "Last version of cmake used to configure")
-    if (${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR})
-        message(STATUS "Running CMake version ${CMAKE_VERSION}")
-
-        math(EXPR POINTER_SIZE "${CMAKE_SIZEOF_VOID_P} * 8")
-        message(STATUS "Compiling to ${POINTER_SIZE}-bit code")
-    endif()
-endif()
-
-set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${PROJECT_SOURCE_DIR}/cmake")
-
-# Include dependency management
-include(deps)
-find_or_fetch_xtensor()
-
+# Set up policies
 if (POLICY CMP0042)
     cmake_policy(SET CMP0042 NEW) # OSX RPATH handling
 endif()
@@ -81,7 +59,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MOLCPP_SANITIZERS}")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MOLCPP_SANITIZERS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MOLCPP_SANITIZERS}")
 
-# add_subdirectory(external)
 
 # We need to use a separated library for non-dll-exported classes that have an
 # unit test. The molcpp_objects OBJECT library contains the code for files
@@ -90,7 +67,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MOLCPP_SANITIZERS}")
 file(GLOB_RECURSE molcpp_objects_sources src/**.cpp)
 
 add_library(molcpp_objects OBJECT ${molcpp_objects_sources})
-target_compile_features(molcpp_objects PRIVATE cxx_std_17 c_std_99)
+target_compile_features(molcpp_objects PRIVATE cxx_std_20 c_std_99)
 setup_xtensor(molcpp_objects)
 
 target_include_directories(molcpp_objects SYSTEM BEFORE PRIVATE ${EXTERNAL_INCLUDES})
@@ -141,13 +118,6 @@ target_use_clang_tidy(molcpp_objects)
 
 set(MOLCPP_OBJECTS
     $<TARGET_OBJECTS:molcpp_objects>
-    # $<TARGET_OBJECTS:molcpp_molfiles>
-    # $<TARGET_OBJECTS:molcpp_tng>
-    # $<TARGET_OBJECTS:molcpp_fmt>
-    # $<TARGET_OBJECTS:molcpp_pugixml>
-    # ${ZLIB_OBJECTS}
-    # ${LZMA_OBJECTS}
-    # ${BZIP2_OBJECTS}
 )
 
 # Add the main molcpp library
@@ -182,7 +152,7 @@ if(WIN32)
 endif()
 
 configure_file (
-  "${PROJECT_SOURCE_DIR}/include/molcpp/config.in.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/molcpp/config.in.h"
   "${PROJECT_BINARY_DIR}/include/molcpp/config.h"
 )
 
