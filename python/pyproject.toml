@@ -4,9 +4,9 @@ requires-python = ">=3.9"
 version = "0.1.0"
 readme = "README.md"
 license = "BSD-3-Clause"
-description = "Python bindings for metatensor"
+description = "Python bindings for molcpp molecular modeling library"
 
-dependencies = ["numpy"]
+dependencies = ["numpy", "xtensor-python"]
 
 keywords = ["machine learning", "molecular modeling"]
 classifiers = [
