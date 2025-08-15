@@ -115,8 +115,7 @@ class MOLCPP_EXPORT Box : public Region, public Boundary
     void set_lengths_tilts(const Vec3 &lengths, const Vec3 &tilts);
 
     // Region interface
-    bool isin(const xt::xarray<double>& xyz) const override;
-    xt::xarray<bool> mask(const xt::xarray<double>& xyz) const override;
+    xt::xarray<bool> isin(const xt::xarray<double>& xyz) const override;
     std::array<double, 6> boundary() const override;
     double volume() const override;
 

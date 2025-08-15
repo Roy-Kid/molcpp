@@ -254,9 +254,133 @@ auto Box::get_distance_between_faces() const -> Vec3
 
 }
 
-auto Box::isin(const xt::xarray<double> &xyz) const -> xt::xarray<bool>
+xt::xarray<bool> Box::isin(const xt::xarray<double> &xyz) const
 {
-    return true;
+    if (xyz.dimension() != 2 || xyz.shape(1) != 3) {
+        throw std::invalid_argument("Coordinates must have shape (n, 3)");
+    }
+    
+    auto style = calc_style_from_matrix(_matrix);
+    
+    if (style == FREE) {
+        return xt::ones<bool>({xyz.shape(0)});  // Free space - all points are inside
+    } else if (style == ORTHOGONAL) {
+        auto lengths = get_lengths();
+        auto lower_bounds = xt::zeros<double>({3});
+        auto upper_bounds = xt::xarray<double>({lengths[0], lengths[1], lengths[2]});
+        
+        // Check if all coordinates are within bounds for each point
+        auto above_lower = xyz >= lower_bounds;
+        auto below_upper = xyz <= upper_bounds;
+        auto within_bounds = above_lower && below_upper;
+        
+        // Use xt::sum to count True values per row, then check if all 3 coordinates are within bounds
+        auto count_within = xt::sum(within_bounds, {1});
+        return xt::equal(count_within, 3);
+    } else { // TRICLINIC
+        // Convert coordinates to fractional space
+        auto inv_matrix = get_inv();
+        auto fractional_coords = xt::linalg::dot(xyz, xt::transpose(inv_matrix));
+        
+        // Check if all fractional coordinates are within [0, 1]
+        auto within_bounds = (fractional_coords >= 0) && (fractional_coords <= 1);
+        
+        // Use xt::sum to count True values per row, then check if all 3 coordinates are within bounds
+        auto count_within = xt::sum(within_bounds, {1});
+        return xt::equal(count_within, 3);
+    }
+}
+
+std::array<double, 6> Box::boundary() const
+{
+    return get_bounds();
+}
+
+double Box::volume() const
+{
+    return get_volume();
+}
+
+xt::xarray<double> Box::minimum_image(const xt::xarray<double>& r1, 
+                                     const xt::xarray<double>& r2) const
+{
+    auto dr = r2 - r1;
+    auto style = calc_style_from_matrix(_matrix);
+    
+    if (style == FREE) {
+        return dr;
+    }
+    
+    if (style == ORTHOGONAL) {
+        auto lengths = get_lengths();
+        auto box_lengths = xt::xarray<double>({lengths[0], lengths[1], lengths[2]});
+        auto half_box = box_lengths * 0.5;
+        
+        // Vectorized minimum image convention
+        // dr = dr - box_lengths * round(dr / box_lengths)
+        auto wrapped = dr - box_lengths * xt::round(dr / box_lengths);
+        
+        return wrapped;
+    } else {
+        // Triclinic case
+        auto inv_matrix = get_inv();
+        auto matrix = get_matrix();
+        
+        if (dr.dimension() == 1) {
+            // Single vector case
+            auto dr_frac = xt::linalg::dot(dr, inv_matrix);
+            auto dr_frac_wrapped = dr_frac - xt::round(dr_frac);
+            return xt::linalg::dot(dr_frac_wrapped, matrix);
+        } else {
+            // Multiple vectors case - vectorized
+            auto dr_frac = xt::linalg::dot(dr, xt::transpose(inv_matrix));
+            auto dr_frac_wrapped = dr_frac - xt::round(dr_frac);
+            return xt::linalg::dot(dr_frac_wrapped, xt::transpose(matrix));
+        }
+    }
+}
+
+std::array<double, 6> Box::get_bounds() const
+{
+    auto style = calc_style_from_matrix(_matrix);
+    
+    if (style == FREE) {
+        constexpr double inf = std::numeric_limits<double>::max();
+        return {-inf, inf, -inf, inf, -inf, inf};
+    }
+    
+    if (style == ORTHOGONAL) {
+        auto lengths = get_lengths();
+        return {0.0, lengths[0], 0.0, lengths[1], 0.0, lengths[2]};
+    }
+    
+    // Triclinic case - find bounding box using vectorized operations
+    // Define all 8 corners of the unit cell in fractional coordinates
+    xt::xarray<double> corners = {{0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {0, 0, 1},
+                                  {1, 1, 0}, {1, 0, 1}, {0, 1, 1}, {1, 1, 1}};
+
+    // Convert all corners to Cartesian coordinates at once
+    auto matrix = get_matrix();
+    auto corners_cart = xt::linalg::dot(corners, xt::transpose(matrix));
+
+    // Find min/max for each dimension using xtensor operations
+    auto xmin = xt::amin(xt::view(corners_cart, xt::all(), 0))();
+    auto xmax = xt::amax(xt::view(corners_cart, xt::all(), 0))();
+    auto ymin = xt::amin(xt::view(corners_cart, xt::all(), 1))();
+    auto ymax = xt::amax(xt::view(corners_cart, xt::all(), 1))();
+    auto zmin = xt::amin(xt::view(corners_cart, xt::all(), 2))();
+    auto zmax = xt::amax(xt::view(corners_cart, xt::all(), 2))();
+
+    return {xmin, xmax, ymin, ymax, zmin, zmax};
+}
+
+std::array<bool, 3> Box::is_periodic() const
+{
+    auto style = calc_style_from_matrix(_matrix);
+    if (style == FREE) {
+        return {false, false, false};
+    }
+    return {true, true, true};
 }
 
 auto Box::wrap(const xt::xarray<double> &xyz) const -> xt::xarray<double>

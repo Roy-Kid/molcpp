@@ -48,65 +48,42 @@ auto OrthogonalBoundary::wrap(const xt::xarray<double>& coords) const -> xt::xar
         throw std::invalid_argument("Coordinates must have shape (n, 3)");
     }
 
-    auto wrapped = coords;
-    const size_t n_particles = coords.shape(0);
+    // Create masks and box lengths for vectorized operations
+    xt::xarray<bool> periodic_mask = {periodic_[0], periodic_[1], periodic_[2]};
+    xt::xarray<double> box_lengths = {box_lengths_[0], box_lengths_[1], box_lengths_[2]};
 
-    for (size_t i = 0; i < n_particles; ++i) {
-        for (size_t j = 0; j < 3; ++j) {
-            if (periodic_[j]) {
-                // Apply periodic wrapping
-                double coord = coords(i, j);
-                double box_length = box_lengths_[j];
-                
-                // Wrap to [0, box_length)
-                wrapped(i, j) = coord - box_length * std::floor(coord / box_length);
-            }
-        }
-    }
-
-    return wrapped;
+    // Vectorized periodic wrapping: coords - box_lengths * floor(coords / box_lengths)
+    auto wrapped_coords = coords - box_lengths * xt::floor(coords / box_lengths);
+    
+    // Only apply wrapping to periodic dimensions
+    auto result = xt::where(periodic_mask, wrapped_coords, coords);
+    
+    return result;
 }
 
 auto OrthogonalBoundary::minimum_image(const xt::xarray<double>& r1, 
                                       const xt::xarray<double>& r2) const -> xt::xarray<double> {
-    auto dr = r2 - r1;
+    xt::xarray<double> dr = r2 - r1;
+    
+    // Create masks for periodic dimensions
+    xt::xarray<bool> periodic_mask = {periodic_[0], periodic_[1], periodic_[2]};
+    xt::xarray<double> box_lengths = {box_lengths_[0], box_lengths_[1], box_lengths_[2]};
     
     if (dr.dimension() == 1 && dr.shape(0) == 3) {
-        // Single vector case
-        for (size_t j = 0; j < 3; ++j) {
-            if (periodic_[j]) {
-                double box_length = box_lengths_[j];
-                double half_box = box_length * 0.5;
-                
-                if (dr(j) > half_box) {
-                    dr(j) -= box_length;
-                } else if (dr(j) < -half_box) {
-                    dr(j) += box_length;
-                }
-            }
-        }
+        // Single vector case - vectorized operation
+        auto wrapped = xt::where(periodic_mask, 
+                                dr - box_lengths * xt::round(dr / box_lengths),
+                                dr);
+        return wrapped;
     } else if (dr.dimension() == 2 && dr.shape(1) == 3) {
-        // Multiple vectors case
-        const size_t n = dr.shape(0);
-        for (size_t i = 0; i < n; ++i) {
-            for (size_t j = 0; j < 3; ++j) {
-                if (periodic_[j]) {
-                    double box_length = box_lengths_[j];
-                    double half_box = box_length * 0.5;
-                    
-                    if (dr(i, j) > half_box) {
-                        dr(i, j) -= box_length;
-                    } else if (dr(i, j) < -half_box) {
-                        dr(i, j) += box_length;
-                    }
-                }
-            }
-        }
+        // Multiple vectors case - broadcast operation
+        auto wrapped = xt::where(periodic_mask,
+                                dr - box_lengths * xt::round(dr / box_lengths),
+                                dr);
+        return wrapped;
     } else {
         throw std::invalid_argument("Invalid shape for distance vector");
     }
-
-    return dr;
 }
 
 auto OrthogonalBoundary::get_bounds() const -> std::array<double, 6> {
@@ -142,67 +119,53 @@ auto TriclinicBoundary::wrap(const xt::xarray<double>& coords) const -> xt::xarr
         throw std::invalid_argument("Coordinates must have shape (n, 3)");
     }
 
-    auto wrapped = coords;
-    const size_t n_particles = coords.shape(0);
-
-    for (size_t i = 0; i < n_particles; ++i) {
-        // Convert to fractional coordinates
-        auto r_cart = xt::view(coords, i, xt::all());
-        auto r_frac = xt::linalg::dot(r_cart, inverse_matrix_);
-        
-        // Apply periodic wrapping in fractional space
-        for (size_t j = 0; j < 3; ++j) {
-            if (periodic_[j]) {
-                r_frac(j) = r_frac(j) - std::floor(r_frac(j));
-            }
-        }
-        
-        // Convert back to Cartesian coordinates
-        auto r_wrapped = xt::linalg::dot(r_frac, lattice_matrix_);
-        xt::view(wrapped, i, xt::all()) = r_wrapped;
-    }
-
+    // Convert all coordinates to fractional at once
+    auto r_frac = xt::linalg::dot(coords, xt::transpose(inverse_matrix_));
+    
+    // Apply periodic wrapping in fractional space (vectorized)
+    xt::xarray<bool> periodic_mask = {periodic_[0], periodic_[1], periodic_[2]};
+    auto r_frac_wrapped = xt::where(periodic_mask,
+                                   r_frac - xt::floor(r_frac),
+                                   r_frac);
+    
+    // Convert back to Cartesian coordinates
+    auto wrapped = xt::linalg::dot(r_frac_wrapped, xt::transpose(lattice_matrix_));
+    
     return wrapped;
 }
 
 auto TriclinicBoundary::minimum_image(const xt::xarray<double>& r1, 
                                      const xt::xarray<double>& r2) const -> xt::xarray<double> {
-    auto dr = r2 - r1;
+    xt::xarray<double> dr = r2 - r1;
     
     if (dr.dimension() == 1 && dr.shape(0) == 3) {
-        // Convert to fractional coordinates
+        // Single vector case
         auto dr_frac = xt::linalg::dot(dr, inverse_matrix_);
         
-        // Apply minimum image in fractional space
-        for (size_t j = 0; j < 3; ++j) {
-            if (periodic_[j]) {
-                dr_frac(j) = dr_frac(j) - std::round(dr_frac(j));
-            }
-        }
+        // Apply minimum image in fractional space (vectorized)
+        xt::xarray<bool> periodic_mask = {periodic_[0], periodic_[1], periodic_[2]};
+        auto dr_frac_wrapped = xt::where(periodic_mask,
+                                        dr_frac - xt::round(dr_frac),
+                                        dr_frac);
         
         // Convert back to Cartesian
-        dr = xt::linalg::dot(dr_frac, lattice_matrix_);
+        return xt::linalg::dot(dr_frac_wrapped, lattice_matrix_);
         
     } else if (dr.dimension() == 2 && dr.shape(1) == 3) {
-        // Multiple vectors case
-        const size_t n = dr.shape(0);
-        for (size_t i = 0; i < n; ++i) {
-            auto dr_i = xt::view(dr, i, xt::all());
-            auto dr_frac = xt::linalg::dot(dr_i, inverse_matrix_);
-            
-            for (size_t j = 0; j < 3; ++j) {
-                if (periodic_[j]) {
-                    dr_frac(j) = dr_frac(j) - std::round(dr_frac(j));
-                }
-            }
-            
-            xt::view(dr, i, xt::all()) = xt::linalg::dot(dr_frac, lattice_matrix_);
-        }
+        // Multiple vectors case - fully vectorized
+        auto dr_frac = xt::linalg::dot(dr, xt::transpose(inverse_matrix_));
+        
+        // Apply minimum image in fractional space
+        xt::xarray<bool> periodic_mask = {periodic_[0], periodic_[1], periodic_[2]};
+        auto dr_frac_wrapped = xt::where(periodic_mask,
+                                        dr_frac - xt::round(dr_frac),
+                                        dr_frac);
+        
+        // Convert back to Cartesian
+        return xt::linalg::dot(dr_frac_wrapped, xt::transpose(lattice_matrix_));
     } else {
         throw std::invalid_argument("Invalid shape for distance vector");
     }
-
-    return dr;
 }
 
 auto TriclinicBoundary::get_bounds() const -> std::array<double, 6> {

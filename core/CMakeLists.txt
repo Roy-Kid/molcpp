@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 4.1)
 
 # Read version from file
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" MOLCPP_FULL_VERSION)
@@ -43,9 +43,6 @@ option(MOLCPP_BUILD_BENCHMARKS "Build performance benchmarks." OFF)
 option(MOLCPP_BUILD_DOCUMENTATION "Build the documentation." OFF)
 option(MOLCPP_USE_WARNINGS "Compile the code with warnings (default in debug mode)" OFF)
 option(MOLCPP_USE_CLANG_TIDY "Compile the code with clang-tidy warnings" OFF)
-option(MOLCPP_SYSTEM_ZLIB "Use the system zlib instead of the internal one" OFF)
-option(MOLCPP_SYSTEM_LZMA "Use the system lzma instead of the internal one" OFF)
-option(MOLCPP_SYSTEM_BZIP2 "Use the system bzip2 instead of the internal one" OFF)
 
 option(MOLCPP_BUILD_DOCTESTS "Build documentation tests as well as unit tests." ON)
 
@@ -97,7 +94,6 @@ target_compile_features(molcpp_objects PRIVATE cxx_std_17 c_std_99)
 setup_xtensor(molcpp_objects)
 
 target_include_directories(molcpp_objects SYSTEM BEFORE PRIVATE ${EXTERNAL_INCLUDES})
-target_include_directories(molcpp_objects SYSTEM BEFORE PRIVATE ${ZLIB_INCLUDE_DIRS} ${LIBLZMA_INCLUDE_DIRS})
 
 target_include_directories(molcpp_objects PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -157,7 +153,7 @@ set(MOLCPP_OBJECTS
 # Add the main molcpp library
 add_library(molcpp ${MOLCPP_OBJECTS})
 
-target_compile_features(molcpp PUBLIC cxx_std_17 c_std_99)
+target_compile_features(molcpp PUBLIC cxx_std_20 c_std_99)
 
 set_target_properties(molcpp PROPERTIES
     CXX_VISIBILITY_PRESET hidden
@@ -178,15 +174,10 @@ target_include_directories(molcpp PUBLIC
     $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(molcpp
-    ${ZLIB_LIBRARIES}
-    ${LIBLZMA_LIBRARY}
-    ${BZIP2_LIBRARIES}
-)
 
 if(WIN32)
     # MMTF (and thus molcpp) uses endianness conversion function from ws2_32
-    target_link_libraries(molcpp ws2_32)
+    target_link_libraries(molcpp PUBLIC ws2_32)
     set(MOLCPP_WINDOWS ON)
 endif()
 

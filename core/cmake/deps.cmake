@@ -32,7 +32,7 @@ endfunction()
 # Function to setup common Catch2 target properties
 function(setup_catch2_target target_name)
     if(TARGET ${target_name})
-        target_compile_features(${target_name} PRIVATE cxx_std_17)
+        target_compile_features(${target_name} PRIVATE cxx_std_20)
         
         # Set common compiler flags for Catch2 targets
         if(MSVC)
@@ -51,7 +51,6 @@ function(find_or_fetch_xtensor)
             message(STATUS "xtensor not found, downloading...")
             include(FetchContent)
             
-            # First fetch xtl (xtensor dependency)
             FetchContent_Declare(
                 xtl
                 GIT_REPOSITORY https://github.com/xtensor-stack/xtl.git
@@ -59,13 +58,19 @@ function(find_or_fetch_xtensor)
             )
             FetchContent_MakeAvailable(xtl)
             
-            # Then fetch xtensor
             FetchContent_Declare(
                 xtensor
                 GIT_REPOSITORY https://github.com/xtensor-stack/xtensor.git
                 GIT_TAG        0.27.0
             )
             FetchContent_MakeAvailable(xtensor)
+
+            FetchContent_Declare(
+                xtensor-blas
+                GIT_REPOSITORY https://github.com/xtensor-stack/xtensor-blas.git
+                GIT_TAG        master
+            )
+            FetchContent_MakeAvailable(xtensor-blas)
         endif()
     else()
         message(STATUS "xtensor already available")
@@ -75,13 +80,31 @@ endfunction()
 function(setup_xtensor target_name)
 
     if(TARGET ${target_name})
-        target_compile_features(${target_name} PRIVATE cxx_std_17)
+        target_compile_features(${target_name} PRIVATE cxx_std_20)
         
         # Set common compiler flags for xtensor targets
         if(MSVC)
             set(CMAKE_EXE_LINKER_FLAGS /MANIFEST:NO)
         endif()
-        
-        target_link_libraries(${target_name} xtensor)
+
+        # find_package(xtensor REQUIRED)
+        # target_include_directories(${target_name} PUBLIC ${xtensor_INCLUDE_DIRS})
+        target_link_libraries(${target_name} PUBLIC xtensor xtensor-blas)
+
+        # xtensor-blas
+        add_definitions(-DHAVE_CBLAS=1)
+        if (WIN32)
+            find_package(OpenBLAS REQUIRED)
+            set(BLAS_LIBRARIES ${CMAKE_INSTALL_PREFIX}${OpenBLAS_LIBRARIES})
+        else()
+            find_package(BLAS REQUIRED)
+            find_package(LAPACK REQUIRED)
+        endif()
+        message(STATUS "BLAS VENDOR:    " ${BLA_VENDOR})
+        message(STATUS "BLAS LIBRARIES: " ${BLAS_LIBRARIES})
+        target_link_libraries(${target_name} PUBLIC ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
+
+    else()
+        message(FATAL_ERROR "Target ${target_name} not found")
     endif()
 endfunction()

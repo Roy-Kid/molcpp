@@ -24,18 +24,11 @@ public:
     virtual ~Region() = default;
 
     /**
-     * @brief Check if all particles are inside this region
-     * @param coords Array of shape (n, 3) containing particle positions
-     * @return true if all particles are inside the region, false otherwise
-     */
-    virtual bool isin(const xt::xarray<double>& coords) const = 0;
-
-    /**
-     * @brief Get points inside the region from input coordinates
+     * @brief Check which particles are inside this region
      * @param coords Array of shape (n, 3) containing particle positions
      * @return Boolean mask of shape (n,) indicating which points are inside
      */
-    virtual xt::xarray<bool> mask(const xt::xarray<double>& coords) const = 0;
+    virtual xt::xarray<bool> isin(const xt::xarray<double>& coords) const = 0;
 
     /**
      * @brief Get the bounding box of this region
@@ -85,8 +78,7 @@ public:
      */
     InsideCube(const Vec3& lo, const Vec3& lengths);
 
-    bool isin(const xt::xarray<double>& coords) const override;
-    xt::xarray<bool> mask(const xt::xarray<double>& coords) const override;
+    xt::xarray<bool> isin(const xt::xarray<double>& coords) const override;
     std::array<double, 6> boundary() const override;
     double volume() const override;
 
@@ -110,8 +102,7 @@ public:
      */
     InsideSphere(const Vec3& center, double R);
 
-    bool isin(const xt::xarray<double>& coords) const override;
-    xt::xarray<bool> mask(const xt::xarray<double>& coords) const override;
+    xt::xarray<bool> isin(const xt::xarray<double>& coords) const override;
     std::array<double, 6> boundary() const override;
     double volume() const override;
 
@@ -136,8 +127,7 @@ public:
      */
     InsideCylinder(const Vec3& center1, const Vec3& center2, double radius);
 
-    bool isin(const xt::xarray<double>& coords) const override;
-    xt::xarray<bool> mask(const xt::xarray<double>& coords) const override;
+    xt::xarray<bool> isin(const xt::xarray<double>& coords) const override;
     std::array<double, 6> boundary() const override;
     double volume() const override;
 
@@ -167,8 +157,7 @@ public:
      */
     NearPlane(const Vec3& point, const Vec3& normal, double thickness);
 
-    bool isin(const xt::xarray<double>& coords) const override;
-    xt::xarray<bool> mask(const xt::xarray<double>& coords) const override;
+    xt::xarray<bool> isin(const xt::xarray<double>& coords) const override;
     std::array<double, 6> boundary() const override;
     double volume() const override;
 
@@ -199,8 +188,7 @@ public:
      */
     AndRegion(std::shared_ptr<Region> region1, std::shared_ptr<Region> region2);
 
-    bool isin(const xt::xarray<double>& coords) const override;
-    xt::xarray<bool> mask(const xt::xarray<double>& coords) const override;
+    xt::xarray<bool> isin(const xt::xarray<double>& coords) const override;
     std::array<double, 6> boundary() const override;
     double volume() const override;
 
@@ -227,8 +215,7 @@ public:
      */
     OrRegion(std::shared_ptr<Region> region1, std::shared_ptr<Region> region2);
 
-    bool isin(const xt::xarray<double>& coords) const override;
-    xt::xarray<bool> mask(const xt::xarray<double>& coords) const override;
+    xt::xarray<bool> isin(const xt::xarray<double>& coords) const override;
     std::array<double, 6> boundary() const override;
     double volume() const override;
 
@@ -250,8 +237,7 @@ public:
      */
     explicit NotRegion(std::shared_ptr<Region> region);
 
-    bool isin(const xt::xarray<double>& coords) const override;
-    xt::xarray<bool> mask(const xt::xarray<double>& coords) const override;
+    xt::xarray<bool> isin(const xt::xarray<double>& coords) const override;
     std::array<double, 6> boundary() const override;
     double volume() const override;
 

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 4.1)
 
 # Benchmark executable
 if(MOLCPP_BUILD_BENCHMARKS)

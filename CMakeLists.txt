@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.30)
+cmake_minimum_required(VERSION 4.1)
 project(molcpp LANGUAGES C CXX)
 
 # Options to enable/disable language bindings

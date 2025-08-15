@@ -2,8 +2,9 @@
 #include <catch2/catch_approx.hpp>
 #include "molcpp/spatial/region.hpp"
 #include "molcpp/spatial/boundary.hpp"
-#include <xtensor/xarray.hpp>
-#include <xtensor/xbuilder.hpp>
+#include <xtensor/containers/xarray.hpp>
+#include <xtensor/generators/xbuilder.hpp>
+#include <xtensor/generators/xrandom.hpp>
 #include <memory>
 #include <vector>
 #include <cmath>
@@ -47,23 +48,26 @@ TEST_CASE("InsideCube region tests", "[spatial][region][cube]") {
     SECTION("Point inside and outside tests") {
         InsideCube cube({0.0, 0.0, 0.0}, 2.0);
 
+        // Test single point
         xt::xarray<double> coords_inside = {{1.0, 1.0, 1.0}};
-        REQUIRE(cube.isin(coords_inside) == true);
+        auto result_inside = cube.isin(coords_inside);
+        REQUIRE(result_inside(0) == true);
 
         xt::xarray<double> coords_outside = {{3.0, 1.0, 1.0}};
-        REQUIRE(cube.isin(coords_outside) == false);
+        auto result_outside = cube.isin(coords_outside);
+        REQUIRE(result_outside(0) == false);
 
-        // Test mask function
+        // Test multiple points with isin function
         xt::xarray<double> coords_mixed = {
             {0.5, 0.5, 0.5},  // inside
             {1.0, 1.0, 1.0},  // inside
             {2.5, 1.5, 1.5}   // outside
         };
         
-        auto mask = cube.mask(coords_mixed);
-        REQUIRE(mask(0) == true);
-        REQUIRE(mask(1) == true);
-        REQUIRE(mask(2) == false);
+        auto result = cube.isin(coords_mixed);
+        REQUIRE(result(0) == true);
+        REQUIRE(result(1) == true);
+        REQUIRE(result(2) == false);
     }
 }
 
@@ -79,26 +83,29 @@ TEST_CASE("InsideSphere region tests", "[spatial][region][sphere]") {
 
     SECTION("Point containment") {
         xt::xarray<double> coords_inside = {{0.5, 0.0, 0.0}};
-        REQUIRE(sphere.isin(coords_inside) == true);
+        auto result_inside = sphere.isin(coords_inside);
+        REQUIRE(result_inside(0) == true);
 
         xt::xarray<double> coords_outside = {{2.0, 0.0, 0.0}};
-        REQUIRE(sphere.isin(coords_outside) == false);
+        auto result_outside = sphere.isin(coords_outside);
+        REQUIRE(result_outside(0) == false);
 
         xt::xarray<double> coords_surface = {{1.0, 0.0, 0.0}};
-        REQUIRE(sphere.isin(coords_surface) == true);
+        auto result_surface = sphere.isin(coords_surface);
+        REQUIRE(result_surface(0) == true);
     }
 
-    SECTION("Mask function") {
+    SECTION("Multiple points test") {
         xt::xarray<double> coords = {
             {0.0, 0.0, 0.0},    // center - inside
             {0.8, 0.6, 0.0},    // inside (0.8² + 0.6² = 1.0)
             {1.5, 0.0, 0.0}     // outside
         };
         
-        auto mask = sphere.mask(coords);
-        REQUIRE(mask(0) == true);
-        REQUIRE(mask(1) == true);
-        REQUIRE(mask(2) == false);
+        auto result = sphere.isin(coords);
+        REQUIRE(result(0) == true);
+        REQUIRE(result(1) == true);
+        REQUIRE(result(2) == false);
     }
 }
 
@@ -119,18 +126,21 @@ TEST_CASE("InsideCylinder region tests", "[spatial][region][cylinder]") {
     SECTION("Point containment") {
         // Point inside cylinder
         xt::xarray<double> coords_inside = {{0.5, 0.0, 1.0}};
-        REQUIRE(cylinder.isin(coords_inside) == true);
+        auto result_inside = cylinder.isin(coords_inside);
+        REQUIRE(result_inside(0) == true);
 
         // Point outside radius
         xt::xarray<double> coords_outside_radius = {{1.5, 0.0, 1.0}};
-        REQUIRE(cylinder.isin(coords_outside_radius) == false);
+        auto result_outside_radius = cylinder.isin(coords_outside_radius);
+        REQUIRE(result_outside_radius(0) == false);
 
         // Point outside height
         xt::xarray<double> coords_outside_height = {{0.5, 0.0, 3.0}};
-        REQUIRE(cylinder.isin(coords_outside_height) == false);
+        auto result_outside_height = cylinder.isin(coords_outside_height);
+        REQUIRE(result_outside_height(0) == false);
     }
 
-    SECTION("Mask function") {
+    SECTION("Multiple points test") {
         xt::xarray<double> coords = {
             {0.0, 0.0, 1.0},    // center - inside
             {0.9, 0.0, 1.0},    // inside
@@ -138,11 +148,11 @@ TEST_CASE("InsideCylinder region tests", "[spatial][region][cylinder]") {
             {0.5, 0.0, 2.5}     // outside height
         };
         
-        auto mask = cylinder.mask(coords);
-        REQUIRE(mask(0) == true);
-        REQUIRE(mask(1) == true);
-        REQUIRE(mask(2) == false);
-        REQUIRE(mask(3) == false);
+        auto result = cylinder.isin(coords);
+        REQUIRE(result(0) == true);
+        REQUIRE(result(1) == true);
+        REQUIRE(result(2) == false);
+        REQUIRE(result(3) == false);
     }
 }
 
@@ -155,18 +165,21 @@ TEST_CASE("NearPlane region tests", "[spatial][region][plane]") {
     SECTION("Point containment") {
         // Point in plane
         xt::xarray<double> coords_in = {{1.0, 1.0, 0.0}};
-        REQUIRE(plane.isin(coords_in) == true);
+        auto result_in = plane.isin(coords_in);
+        REQUIRE(result_in(0) == true);
 
         // Point within thickness
         xt::xarray<double> coords_near = {{1.0, 1.0, 0.4}};
-        REQUIRE(plane.isin(coords_near) == true);
+        auto result_near = plane.isin(coords_near);
+        REQUIRE(result_near(0) == true);
 
         // Point outside thickness
         xt::xarray<double> coords_far = {{1.0, 1.0, 0.6}};
-        REQUIRE(plane.isin(coords_far) == false);
+        auto result_far = plane.isin(coords_far);
+        REQUIRE(result_far(0) == false);
     }
 
-    SECTION("Mask function") {
+    SECTION("Multiple points test") {
         xt::xarray<double> coords = {
             {0.0, 0.0, 0.0},    // on plane
             {1.0, 1.0, 0.3},    // within thickness
@@ -174,11 +187,11 @@ TEST_CASE("NearPlane region tests", "[spatial][region][plane]") {
             {0.0, 0.0, 0.7}     // outside thickness
         };
         
-        auto mask = plane.mask(coords);
-        REQUIRE(mask(0) == true);
-        REQUIRE(mask(1) == true);
-        REQUIRE(mask(2) == true);
-        REQUIRE(mask(3) == false);
+        auto result = plane.isin(coords);
+        REQUIRE(result(0) == true);
+        REQUIRE(result(1) == true);
+        REQUIRE(result(2) == true);
+        REQUIRE(result(3) == false);
     }
 }
 
@@ -191,23 +204,25 @@ TEST_CASE("Boolean region combinations", "[spatial][region][boolean]") {
 
         // Point inside both
         xt::xarray<double> coords_inside = {{0.5, 0.0, 0.0}};
-        REQUIRE(intersection.isin(coords_inside) == true);
+        auto result_inside = intersection.isin(coords_inside);
+        REQUIRE(result_inside(0) == true);
 
         // Point in cube but not sphere
         xt::xarray<double> coords_cube_only = {{0.9, 0.9, 0.9}};
-        REQUIRE(intersection.isin(coords_cube_only) == false);
+        auto result_cube_only = intersection.isin(coords_cube_only);
+        REQUIRE(result_cube_only(0) == false);
 
-        // Test mask
+        // Test multiple points
         xt::xarray<double> coords = {
             {0.5, 0.0, 0.0},    // in both
             {0.9, 0.9, 0.9},    // cube only
             {2.0, 0.0, 0.0}     // neither
         };
         
-        auto mask = intersection.mask(coords);
-        REQUIRE(mask(0) == true);
-        REQUIRE(mask(1) == false);
-        REQUIRE(mask(2) == false);
+        auto result = intersection.isin(coords);
+        REQUIRE(result(0) == true);
+        REQUIRE(result(1) == false);
+        REQUIRE(result(2) == false);
     }
 
     SECTION("OrRegion tests") {
@@ -217,27 +232,30 @@ TEST_CASE("Boolean region combinations", "[spatial][region][boolean]") {
 
         // Point in first sphere
         xt::xarray<double> coords_sphere1 = {{-1.5, 0.0, 0.0}};
-        REQUIRE(union_region.isin(coords_sphere1) == true);
+        auto result_sphere1 = union_region.isin(coords_sphere1);
+        REQUIRE(result_sphere1(0) == true);
 
         // Point in second sphere
         xt::xarray<double> coords_sphere2 = {{1.5, 0.0, 0.0}};
-        REQUIRE(union_region.isin(coords_sphere2) == true);
+        auto result_sphere2 = union_region.isin(coords_sphere2);
+        REQUIRE(result_sphere2(0) == true);
 
         // Point in neither
         xt::xarray<double> coords_neither = {{0.0, 0.0, 0.0}};
-        REQUIRE(union_region.isin(coords_neither) == false);
+        auto result_neither = union_region.isin(coords_neither);
+        REQUIRE(result_neither(0) == false);
 
-        // Test mask
+        // Test multiple points
         xt::xarray<double> coords = {
             {-2.0, 0.0, 0.0},   // sphere1 center
             {2.0, 0.0, 0.0},    // sphere2 center
             {0.0, 0.0, 0.0}     // between spheres
         };
         
-        auto mask = union_region.mask(coords);
-        REQUIRE(mask(0) == true);
-        REQUIRE(mask(1) == true);
-        REQUIRE(mask(2) == false);
+        auto result = union_region.isin(coords);
+        REQUIRE(result(0) == true);
+        REQUIRE(result(1) == true);
+        REQUIRE(result(2) == false);
     }
 
     SECTION("NotRegion tests") {
@@ -245,21 +263,23 @@ TEST_CASE("Boolean region combinations", "[spatial][region][boolean]") {
 
         // Point inside original sphere should be outside NOT region
         xt::xarray<double> coords_inside = {{0.5, 0.0, 0.0}};
-        REQUIRE(complement.isin(coords_inside) == false);
+        auto result_inside = complement.isin(coords_inside);
+        REQUIRE(result_inside(0) == false);
 
         // Point outside original sphere should be inside NOT region
         xt::xarray<double> coords_outside = {{2.0, 0.0, 0.0}};
-        REQUIRE(complement.isin(coords_outside) == true);
+        auto result_outside = complement.isin(coords_outside);
+        REQUIRE(result_outside(0) == true);
 
-        // Test mask
+        // Test multiple points
         xt::xarray<double> coords = {
             {0.0, 0.0, 0.0},    // sphere center
             {2.0, 0.0, 0.0}     // outside sphere
         };
         
-        auto mask = complement.mask(coords);
-        REQUIRE(mask(0) == false);
-        REQUIRE(mask(1) == true);
+        auto result = complement.isin(coords);
+        REQUIRE(result(0) == false);
+        REQUIRE(result(1) == true);
     }
 }
 
@@ -353,7 +373,8 @@ TEST_CASE("Complex region-boundary combinations", "[spatial][integration]") {
         auto wrapped = boundary.wrap(coords_outside);
         
         // After wrapping: 2.7 -> 0.7, which should be in cube [0.5, 1.5]
-        REQUIRE(cube->isin(wrapped) == true);
+        auto result = cube->isin(wrapped);
+        REQUIRE(result(0) == true);
     }
 
     SECTION("Multiple regions with boundary") {
@@ -370,7 +391,8 @@ TEST_CASE("Complex region-boundary combinations", "[spatial][integration]") {
         xt::xarray<double> coords = {{2.3, 1.0, 1.0}};  // Should wrap to {0.3, 1.0, 1.0}
         auto wrapped = boundary.wrap(coords);
         
-        REQUIRE(union_spheres.isin(wrapped) == true);
+        auto result = union_spheres.isin(wrapped);
+        REQUIRE(result(0) == true);
     }
 }
 
@@ -405,11 +427,9 @@ TEST_CASE("Edge cases and error handling", "[spatial][errors]") {
         InsideCube cube({0,0,0}, 1.0);
         xt::xarray<double> empty_coords = xt::empty<double>({0, 3});
         
-        // Empty array should return true (vacuous truth)
-        REQUIRE(cube.isin(empty_coords) == true);
-        
-        auto mask = cube.mask(empty_coords);
-        REQUIRE(mask.size() == 0);
+        // Empty array should return empty array
+        auto result = cube.isin(empty_coords);
+        REQUIRE(result.size() == 0);
     }
 }
 
@@ -419,16 +439,23 @@ TEST_CASE("Performance and numerical stability", "[spatial][performance]") {
         
         // Create large array of random points
         const size_t n_points = 1000;
-        xt::xarray<double> coords = xt::random::randn<double>({n_points, 3});
+        
+        // Use default random engine with proper API
+        auto& engine = xt::random::get_default_random_engine();
+        xt::random::seed(42);
+        
+        // Generate random values in [-1, 1] with explicit shape type
+        std::array<size_t, 2> shape = {n_points, 3};
+        auto coords = xt::eval(xt::random::rand<double>(shape, -1.0, 1.0, engine));
         
         // Should not crash and should complete quickly
-        auto mask = sphere.mask(coords);
-        REQUIRE(mask.size() == n_points);
+        auto result = sphere.isin(coords);
+        REQUIRE(result.size() == n_points);
         
         // Count points inside sphere (approximately π/6 ≈ 0.52 for unit cube in unit sphere)
         size_t count_inside = 0;
         for (size_t i = 0; i < n_points; ++i) {
-            if (mask(i)) count_inside++;
+            if (result(i)) count_inside++;
         }
         
         // Should have some points inside and some outside for random data
@@ -447,10 +474,10 @@ TEST_CASE("Performance and numerical stability", "[spatial][performance]") {
             {1.0 + 1e-5, 0.5, 0.5}      // Just outside tolerance
         };
         
-        auto mask = cube.mask(coords_boundary);
-        REQUIRE(mask(0) == true);   // Within tolerance
-        REQUIRE(mask(1) == true);   // Within tolerance
-        REQUIRE(mask(2) == false);  // Outside tolerance
-        REQUIRE(mask(3) == false);  // Outside tolerance
+        auto result = cube.isin(coords_boundary);
+        REQUIRE(result(0) == true);   // Within tolerance
+        REQUIRE(result(1) == true);   // Within tolerance
+        REQUIRE(result(2) == false);  // Outside tolerance
+        REQUIRE(result(3) == false);  // Outside tolerance
     }
 }
