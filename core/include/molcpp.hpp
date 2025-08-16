@@ -8,6 +8,5 @@
 #include "molcpp/ecs/ecs.hpp"  // IWYU pragma: export
 #include "molcpp/atom.hpp"  // IWYU pragma: export
 #include "molcpp/bond.hpp"  // IWYU pragma: export
-#include "molcpp/molecule.hpp"  // IWYU pragma: export
 
 #endif // MOLCPP_HPP

@@ -31,6 +31,11 @@ Box::Box(const std::initializer_list<double> &lengths): _matrix{xt::zeros<double
     set_lengths(_lengths);
 }
 
+Box::Box(const Vec3 &lengths): _matrix{xt::zeros<double>({3, 3})}
+{
+    set_lengths(lengths);
+}
+
 Box Box::from_lengths_angles(const Vec3 &lengths, const Vec3 &angles)
 {
     return Box(calc_matrix_from_lengths_angles(lengths, angles));

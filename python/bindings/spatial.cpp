@@ -5,6 +5,8 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/numpy.h>
+#include <pybind11/operators.h>
 #include <xtensor-python/pyarray.hpp>
 
 #include <molcpp/spatial/box.hpp>
@@ -31,95 +33,133 @@ xt::pyarray<double> vec3_to_pyarray(const Vec3& vec) {
     return xt::pyarray<double>(vec);
 }
 
-void bind_spatial(py::module_& m) {
-    // Spatial module
-    py::module_ spatial = m.def_submodule("spatial", "Spatial structures and boundaries");
-    
-    // Box class with numpy interface
-    py::class_<molcpp::Box>(spatial, "Box")
-        .def(py::init<>(), "Create a default box")
-        .def(py::init<const Mat3&>(), "Create box from matrix")
+// Helper function to convert Mat3 to numpy array
+xt::pyarray<double> mat3_to_pyarray(const Mat3& mat) {
+    return xt::pyarray<double>(mat);
+}
+
+// Helper function to convert numpy array to Mat3
+Mat3 pyarray_to_mat3(const xt::pyarray<double>& arr) {
+    if (arr.shape().size() != 2 || arr.shape(0) != 3 || arr.shape(1) != 3) {
+        throw std::invalid_argument("Array must be 3x3 matrix");
+    }
+    Mat3 result;
+    for (size_t i = 0; i < 3; ++i) {
+        for (size_t j = 0; j < 3; ++j) {
+            result(i, j) = arr(i, j);
+        }
+    }
+    return result;
+}
+
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <pybind11/numpy.h>
+#include <xtensor-python/pyarray.hpp>
+#include <xtensor-python/pytensor.hpp>
+#include "molcpp/types.hpp"
+#include "molcpp/spatial/box.hpp"
+#include "molcpp/spatial/boundary.hpp"
+#include "molcpp/spatial/region.hpp"
+
+namespace py = pybind11;
+
+void bind_spatial(py::module& m) {
+    auto spatial = m.def_submodule("spatial", "Spatial analysis and region tools");
+
+    // Box::Style enum
+    py::enum_<molcpp::Box::Style>(spatial, "BoxStyle")
+        .value("FREE", molcpp::Box::Style::FREE)
+        .value("ORTHOGONAL", molcpp::Box::Style::ORTHOGONAL)
+        .value("TRICLINIC", molcpp::Box::Style::TRICLINIC);
+
+    // Base Region class
+    py::class_<molcpp::Region>(spatial, "Region")
+        .def("isin", [](const molcpp::Region& self, const xt::pyarray<double>& coords) {
+            return xt::pyarray<bool>(self.isin(coords));
+        }, "Check which particles are inside this region")
+        .def("boundary", &molcpp::Region::boundary, "Get the bounding box of this region")
+        .def("volume", &molcpp::Region::volume, "Get the volume of this region");
+
+    // Base Boundary class
+    py::class_<molcpp::Boundary>(spatial, "Boundary")
+        .def("wrap", [](const molcpp::Boundary& self, const xt::pyarray<double>& coords) {
+            return xt::pyarray<double>(self.wrap(coords));
+        }, "Wrap coordinates according to boundary conditions")
+        .def("minimum_image", [](const molcpp::Boundary& self, 
+                                const xt::pyarray<double>& r1, 
+                                const xt::pyarray<double>& r2) {
+            return xt::pyarray<double>(self.minimum_image(r1, r2));
+        }, "Get minimum image distance vector")
+        .def("get_bounds", &molcpp::Boundary::get_bounds, "Get bounding box")
+        .def("is_periodic", &molcpp::Boundary::is_periodic, "Check periodicity");
+
+    // Box class (inherits from both Region and Boundary)
+    py::class_<molcpp::Box, molcpp::Region, molcpp::Boundary>(spatial, "Box")
+        .def(py::init<>(), "Initialize free (infinite) box")
+        .def(py::init<const Mat3&>(), "Initialize from lattice matrix")
+        .def(py::init<const Vec3&>(), "Initialize from lengths vector")
+        .def(py::init<const std::initializer_list<double>&>(), "Initialize from lengths list")
+        .def(py::init([](const py::list& lengths) {
+            if (lengths.size() != 3) {
+                throw std::invalid_argument("Lengths list must have exactly 3 elements");
+            }
+            Vec3 vec;
+            vec(0) = lengths[0].cast<double>();
+            vec(1) = lengths[1].cast<double>();
+            vec(2) = lengths[2].cast<double>();
+            return molcpp::Box(vec);
+        }), "Initialize from Python list of lengths")
         
-        // Factory methods using numpy arrays
-        .def_static("from_lengths_angles", 
-            [](const xt::pyarray<double>& lengths, const xt::pyarray<double>& angles) {
-                return molcpp::Box::from_lengths_angles(
-                    pyarray_to_vec3(lengths), pyarray_to_vec3(angles));
-            }, "Create box from lengths and angles as numpy arrays")
+        // Basic properties
+        .def("get_style", &molcpp::Box::get_style, "Get the box style")
+        .def("get_lengths", &molcpp::Box::get_lengths, "Get the box lengths")
+        .def("get_angles", &molcpp::Box::get_angles, "Get the box angles")
+        .def("get_volume", &molcpp::Box::get_volume, "Get the box volume")
         
-        // Setters using numpy arrays
-        .def("set_lengths", 
-            [](molcpp::Box& box, const xt::pyarray<double>& lengths) {
-                box.set_lengths(pyarray_to_vec3(lengths));
-            }, "Set box lengths from numpy array")
-            
-        .def("set_angles", 
-            [](molcpp::Box& box, const xt::pyarray<double>& angles) {
-                box.set_angles(pyarray_to_vec3(angles));
-            }, "Set box angles from numpy array")
-            
-        .def("set_lengths_angles", 
-            [](molcpp::Box& box, const xt::pyarray<double>& lengths, const xt::pyarray<double>& angles) {
-                box.set_lengths_angles(pyarray_to_vec3(lengths), pyarray_to_vec3(angles));
-            }, "Set both lengths and angles from numpy arrays")
+        // Matrix operations
+        .def("get_matrix", [](const molcpp::Box& self) {
+            return xt::pyarray<double>(self.get_matrix());
+        }, "Get the lattice matrix")
+        .def("get_inv", [](const molcpp::Box& self) {
+            return xt::pyarray<double>(self.get_inv());
+        }, "Get the inverse lattice matrix")
         
-        // Getters returning numpy arrays
-        .def("get_lengths", 
-            [](const molcpp::Box& box) -> xt::pyarray<double> {
-                return vec3_to_pyarray(box.get_lengths());
-            }, "Get box lengths as numpy array")
-            
-        .def("get_angles", 
-            [](const molcpp::Box& box) -> xt::pyarray<double> {
-                return vec3_to_pyarray(box.get_angles());
-            }, "Get box angles as numpy array")
-            
-        .def("get_matrix", 
-            [](const molcpp::Box& box) -> xt::pyarray<double> {
-                return xt::pyarray<double>(box.get_matrix());
-            }, "Get box matrix as numpy array")
+        // Setters
+        .def("set_lengths", &molcpp::Box::set_lengths, "Set box lengths")
+        .def("set_angles", &molcpp::Box::set_angles, "Set box angles")
+        .def("set_matrix", &molcpp::Box::set_matrix, "Set lattice matrix")
+        .def("set_lengths_angles", &molcpp::Box::set_lengths_angles, 
+             "Set box lengths and angles", py::arg("lengths"), py::arg("angles"))
         
-        .def("__repr__", [](const molcpp::Box& box) {
-            return "<molcpp.spatial.Box>";
-        });
-    
-    // OrthogonalBoundary with numpy interface
-    py::class_<molcpp::OrthogonalBoundary>(spatial, "OrthogonalBoundary")
-        .def(py::init([](const xt::pyarray<double>& box_lengths) {
-            return molcpp::OrthogonalBoundary(pyarray_to_vec3(box_lengths));
-        }), py::arg("box_lengths"), 
-        "Create orthogonal boundary from numpy array")
+        // Coordinate operations  
+        .def("wrap", [](const molcpp::Box& self, const xt::pyarray<double>& coords) {
+            return xt::pyarray<double>(self.wrap(coords));
+        }, "Wrap coordinates to box")
+        .def("minimum_image", [](const molcpp::Box& self, 
+                                const xt::pyarray<double>& r1, 
+                                const xt::pyarray<double>& r2) {
+            return xt::pyarray<double>(self.minimum_image(r1, r2));
+        }, "Get minimum image distance vector")
         
-        .def(py::init([](const xt::pyarray<double>& box_lengths, bool px, bool py, bool pz) {
-            std::array<bool, 3> periodic = {px, py, pz};
-            return molcpp::OrthogonalBoundary(pyarray_to_vec3(box_lengths), periodic);
-        }), py::arg("box_lengths"), py::arg("px") = true, py::arg("py") = true, py::arg("pz") = true,
-        "Create orthogonal boundary from numpy array with custom periodicity")
+        // Boundary interface
+        .def("get_bounds", &molcpp::Box::get_bounds, "Get bounding box")
+        .def("is_periodic", &molcpp::Box::is_periodic, "Check periodicity")
         
-        .def("get_box_lengths", 
-            [](const molcpp::OrthogonalBoundary& boundary) -> xt::pyarray<double> {
-                return vec3_to_pyarray(boundary.get_box_lengths());
-            }, "Get box lengths as numpy array")
+        // Region interface
+        .def("isin", [](const molcpp::Box& self, const xt::pyarray<double>& coords) {
+            return xt::pyarray<bool>(self.isin(coords));
+        }, "Check which particles are inside the box")
         
-        .def("__repr__", [](const molcpp::OrthogonalBoundary&) {
-            return "<molcpp.spatial.OrthogonalBoundary>";
-        });
-    
-    // SphericalBoundary with numpy interface
-    py::class_<molcpp::SphericalBoundary>(spatial, "SphericalBoundary")
-        .def(py::init([](const xt::pyarray<double>& center, double radius, bool periodic) {
-            return molcpp::SphericalBoundary(pyarray_to_vec3(center), radius, periodic);
-        }), py::arg("center"), py::arg("radius"), py::arg("periodic") = false,
-        "Create spherical boundary from numpy array center")
+        // Operators (need to add these to the Box class)
+        // .def("__eq__", [](const molcpp::Box& self, const molcpp::Box& other) {
+        //     return operator==(self, other);
+        // }, "Check box equality")
+        // .def("__ne__", [](const molcpp::Box& self, const molcpp::Box& other) {
+        //     return operator!=(self, other);
+        // }, "Check box inequality")
         
-        .def("get_center", 
-            [](const molcpp::SphericalBoundary& boundary) -> xt::pyarray<double> {
-                return vec3_to_pyarray(boundary.get_center());
-            }, "Get center as numpy array")
-        
-        .def("get_radius", &molcpp::SphericalBoundary::get_radius, "Get radius")
-        
-        .def("__repr__", [](const molcpp::SphericalBoundary&) {
-            return "<molcpp.spatial.SphericalBoundary>";
-        });
+        // Static factory methods
+        .def_static("from_lengths_angles", &molcpp::Box::from_lengths_angles,
+                   "Create box from lengths and angles", py::arg("lengths"), py::arg("angles"));
 }

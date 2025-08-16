@@ -126,8 +126,8 @@ xt::xarray<bool> InsideCylinder::isin(const xt::xarray<double>& coords) const {
     // Vector from center1 to points
     auto p_vectors = coords - center1_array;
     
-    // Project onto cylinder axis
-    auto proj_lengths = xt::linalg::dot(p_vectors, axis_array);
+    // Project onto cylinder axis using element-wise multiplication and sum
+    auto proj_lengths = xt::sum(p_vectors * axis_array, 1);
     
     // Check if projections are within cylinder height
     auto height_check = (proj_lengths >= -TOLERANCE) && (proj_lengths <= height_ + TOLERANCE);
@@ -193,8 +193,8 @@ xt::xarray<bool> NearPlane::isin(const xt::xarray<double>& coords) const {
     // Vector from plane point to each coordinate
     auto diff_vectors = coords - point_array;
     
-    // Calculate distances to plane
-    auto distances = xt::linalg::dot(diff_vectors, normal_array);
+    // Calculate distances to plane using element-wise multiplication and sum
+    auto distances = xt::sum(diff_vectors * normal_array, 1);
     
     // Check if distance is within thickness
     return xt::abs(distances) <= (thickness_ + TOLERANCE);

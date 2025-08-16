@@ -1,5 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include "molcpp/ecs/ecs.hpp"
+#include "molcpp/atom.hpp"
+#include "molcpp/ecs/components.hpp"
 
 // Simple test components using basic types
 struct TestPosition {
@@ -135,5 +137,236 @@ TEST_CASE("Entity move semantics", "[entity]") {
         }
         
         REQUIRE(system.entity_count() == initial_count);
+    }
+}
+
+TEST_CASE("Atom entity creation and basic operations", "[atom]") {
+    auto& system = System::instance();
+    size_t initial_count = system.entity_count();
+    
+    SECTION("Atom creation increases entity count") {
+        auto atom = std::make_unique<molcpp::Atom>();
+        REQUIRE(system.entity_count() == initial_count + 1);
+        REQUIRE(atom->get_id() > 0);
+    }
+    
+    SECTION("Atom destruction decreases entity count") {
+        {
+            auto atom = std::make_unique<molcpp::Atom>();
+            REQUIRE(system.entity_count() == initial_count + 1);
+        }
+        REQUIRE(system.entity_count() == initial_count);
+    }
+    
+    SECTION("Atoms have unique IDs") {
+        auto atom1 = std::make_unique<molcpp::Atom>();
+        auto atom2 = std::make_unique<molcpp::Atom>();
+        REQUIRE(atom1->get_id() != atom2->get_id());
+    }
+}
+
+TEST_CASE("Atom component operations", "[atom][components]") {
+    using namespace molcpp::ecs::components;
+    
+    auto atom = std::make_unique<molcpp::Atom>();
+    
+    SECTION("Adding basic atomic components") {
+        REQUIRE_FALSE(atom->has_component<Position>());
+        REQUIRE_FALSE(atom->has_component<Element>());
+        REQUIRE_FALSE(atom->has_component<Radius>());
+        
+        // Add position component
+        auto& pos = atom->add_component<Position>(1.5, 2.5, 3.5);
+        REQUIRE(atom->has_component<Position>());
+        REQUIRE(pos.x == 1.5);
+        REQUIRE(pos.y == 2.5);
+        REQUIRE(pos.z == 3.5);
+        
+        // Add element component
+        auto& elem = atom->add_component<Element>("C", 6);
+        REQUIRE(atom->has_component<Element>());
+        REQUIRE(elem.symbol == "C");
+        REQUIRE(elem.atomic_number == 6);
+        
+        // Add radius component
+        auto& radius = atom->add_component<Radius>(0.77);
+        REQUIRE(atom->has_component<Radius>());
+        REQUIRE(radius.value == 0.77);
+    }
+    
+    SECTION("Creating a complete carbon atom") {
+        atom->add_component<Position>(0.0, 0.0, 0.0);
+        atom->add_component<Element>("C", 6);
+        atom->add_component<Radius>(0.77);
+        atom->add_component<Mass>(12.011);
+        atom->add_component<Charge>(0.0);
+        
+        REQUIRE(atom->has_component<Position>());
+        REQUIRE(atom->has_component<Element>());
+        REQUIRE(atom->has_component<Radius>());
+        REQUIRE(atom->has_component<Mass>());
+        REQUIRE(atom->has_component<Charge>());
+        
+        // Verify component values
+        auto* element = atom->get_component<Element>();
+        REQUIRE(element != nullptr);
+        REQUIRE(element->symbol == "C");
+        REQUIRE(element->atomic_number == 6);
+        
+        auto* mass = atom->get_component<Mass>();
+        REQUIRE(mass != nullptr);
+        REQUIRE(mass->value == 12.011);
+    }
+    
+    SECTION("Creating different types of atoms") {
+        // Hydrogen atom
+        auto hydrogen = std::make_unique<molcpp::Atom>();
+        hydrogen->add_component<Position>(1.0, 0.0, 0.0);
+        hydrogen->add_component<Element>("H", 1);
+        hydrogen->add_component<Radius>(0.31);
+        hydrogen->add_component<Mass>(1.008);
+        
+        // Oxygen atom
+        auto oxygen = std::make_unique<molcpp::Atom>();
+        oxygen->add_component<Position>(-1.0, 0.0, 0.0);
+        oxygen->add_component<Element>("O", 8);
+        oxygen->add_component<Radius>(0.66);
+        oxygen->add_component<Mass>(15.999);
+        
+        // Verify both atoms exist and have different properties
+        REQUIRE(hydrogen->get_id() != oxygen->get_id());
+        
+        auto* h_elem = hydrogen->get_component<Element>();
+        auto* o_elem = oxygen->get_component<Element>();
+        REQUIRE(h_elem->symbol == "H");
+        REQUIRE(o_elem->symbol == "O");
+        REQUIRE(h_elem->atomic_number == 1);
+        REQUIRE(o_elem->atomic_number == 8);
+    }
+    
+    SECTION("Atom velocity and dynamics components") {
+        atom->add_component<Position>(0.0, 0.0, 0.0);
+        atom->add_component<Velocity>(0.1, 0.2, 0.3);
+        atom->add_component<Mass>(12.011);
+        
+        auto* velocity = atom->get_component<Velocity>();
+        REQUIRE(velocity != nullptr);
+        REQUIRE(velocity->vx == 0.1);
+        REQUIRE(velocity->vy == 0.2);
+        REQUIRE(velocity->vz == 0.3);
+        
+        // Modify velocity
+        velocity->vx = 0.5;
+        REQUIRE(atom->get_component<Velocity>()->vx == 0.5);
+    }
+    
+    SECTION("Removing atom components") {
+        atom->add_component<Position>(1.0, 2.0, 3.0);
+        atom->add_component<Element>("N", 7);
+        atom->add_component<Velocity>(0.1, 0.1, 0.1);
+        
+        REQUIRE(atom->has_component<Position>());
+        REQUIRE(atom->has_component<Element>());
+        REQUIRE(atom->has_component<Velocity>());
+        
+        // Remove velocity component
+        bool removed = atom->remove_component<Velocity>();
+        REQUIRE(removed);
+        REQUIRE_FALSE(atom->has_component<Velocity>());
+        REQUIRE(atom->has_component<Position>());
+        REQUIRE(atom->has_component<Element>());
+        
+        // Try to remove non-existent component
+        bool removed_again = atom->remove_component<Velocity>();
+        REQUIRE_FALSE(removed_again);
+    }
+}
+
+TEST_CASE("Atom move semantics", "[atom]") {
+    using namespace molcpp::ecs::components;
+    
+    auto& system = System::instance();
+    size_t initial_count = system.entity_count();
+    
+    SECTION("Move constructor preserves atom data") {
+        EntityId original_id;
+        {
+            auto atom1 = std::make_unique<molcpp::Atom>();
+            original_id = atom1->get_id();
+            atom1->add_component<Position>(1.0, 2.0, 3.0);
+            atom1->add_component<Element>("C", 6);
+            atom1->add_component<Mass>(12.011);
+            
+            auto atom2 = std::make_unique<molcpp::Atom>(std::move(*atom1));
+            
+            REQUIRE(atom2->get_id() == original_id);
+            REQUIRE(atom2->has_component<Position>());
+            REQUIRE(atom2->has_component<Element>());
+            REQUIRE(atom2->has_component<Mass>());
+            REQUIRE(system.entity_count() == initial_count + 1); // Should still be just one entity
+            
+            // Verify component data is preserved
+            auto* pos = atom2->get_component<Position>();
+            auto* elem = atom2->get_component<Element>();
+            auto* mass = atom2->get_component<Mass>();
+            
+            REQUIRE(pos != nullptr);
+            REQUIRE(pos->x == 1.0);
+            REQUIRE(pos->y == 2.0);
+            REQUIRE(pos->z == 3.0);
+            
+            REQUIRE(elem != nullptr);
+            REQUIRE(elem->symbol == "C");
+            REQUIRE(elem->atomic_number == 6);
+            
+            REQUIRE(mass != nullptr);
+            REQUIRE(mass->value == 12.011);
+        }
+        
+        REQUIRE(system.entity_count() == initial_count);
+    }
+}
+
+TEST_CASE("System querying with atoms", "[atom][system]") {
+    using namespace molcpp::ecs::components;
+    
+    auto& system = System::instance();
+    
+    SECTION("Query atoms by component type") {
+        // Create multiple atoms with different components
+        auto carbon = std::make_unique<molcpp::Atom>();
+        carbon->add_component<Position>(0.0, 0.0, 0.0);
+        carbon->add_component<Element>("C", 6);
+        
+        auto hydrogen1 = std::make_unique<molcpp::Atom>();
+        hydrogen1->add_component<Position>(1.0, 0.0, 0.0);
+        hydrogen1->add_component<Element>("H", 1);
+        
+        auto hydrogen2 = std::make_unique<molcpp::Atom>();
+        hydrogen2->add_component<Position>(-1.0, 0.0, 0.0);
+        hydrogen2->add_component<Element>("H", 1);
+        
+        // Query entities with Position component
+        auto position_entities = system.query<Position>();
+        REQUIRE(position_entities.size() >= 3);
+        
+        // Query entities with Element component
+        auto element_entities = system.query<Element>();
+        REQUIRE(element_entities.size() >= 3);
+        
+        // Check that our atoms are in the results
+        bool found_carbon = false;
+        bool found_hydrogen1 = false;
+        bool found_hydrogen2 = false;
+        
+        for (auto* entity : element_entities) {
+            if (entity == carbon.get()) found_carbon = true;
+            if (entity == hydrogen1.get()) found_hydrogen1 = true;
+            if (entity == hydrogen2.get()) found_hydrogen2 = true;
+        }
+        
+        REQUIRE(found_carbon);
+        REQUIRE(found_hydrogen1);
+        REQUIRE(found_hydrogen2);
     }
 }

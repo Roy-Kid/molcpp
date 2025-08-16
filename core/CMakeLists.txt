@@ -87,6 +87,10 @@ if(${BUILD_SHARED_LIBS})
     set_target_properties(molcpp_objects PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 endif()
 
+# Always set POSITION_INDEPENDENT_CODE for Python bindings compatibility
+# Python extension modules require PIC even when linking against static libraries
+set_target_properties(molcpp_objects PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+
 # hide non-exported symbols by default, this mimics Windows behavior on Unix
 set_target_properties(molcpp_objects PROPERTIES
     CXX_VISIBILITY_PRESET hidden

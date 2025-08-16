@@ -44,4 +44,7 @@ build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
 cmake.source-dir="../"
-cmake.args = ["-DMOLCPP_BUILD_CORE=ON", "-DMOLCPP_BUILD_PYTHON=ON"]
+cmake.args = [
+    "-DMOLCPP_BUILD_CORE=ON", 
+    "-DMOLCPP_BUILD_PYTHON=ON"
+]

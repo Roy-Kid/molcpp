@@ -1,38 +1,52 @@
-# conftest.py
-# Test configuration for molcpp Python tests
+"""
+pytest configuration and fixtures for molcpp tests
+"""
 
 import sys
 import os
-
-# Add the source directory to Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-
 import pytest
-import numpy as np
+
+# Add the built module to Python path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'build'))
+
+try:
+    import molcpp
+except ImportError as e:
+    pytest.skip(f"molcpp module not available: {e}", allow_module_level=True)
 
 
 @pytest.fixture
-def sample_coords():
-    """Sample 3D coordinates for testing."""
-    return np.array([
-        [0.0, 0.0, 0.0],
-        [1.0, 0.0, 0.0],
-        [0.0, 1.0, 0.0],
-        [0.0, 0.0, 1.0]
-    ])
+def ecs_system():
+    """Fixture providing ECS System instance"""
+    return molcpp.ecs.System.get_instance()
 
 
 @pytest.fixture
-def sample_vec3():
-    """Sample Vec3 for testing."""
-    return np.array([1.0, 2.0, 3.0])
+def clean_entity():
+    """Fixture providing a clean Entity instance"""
+    return molcpp.ecs.Entity()
 
 
 @pytest.fixture
-def sample_mat3():
-    """Sample Mat3 for testing."""
-    return np.array([
-        [1.0, 0.0, 0.0],
-        [0.0, 1.0, 0.0],
-        [0.0, 0.0, 1.0]
-    ])
+def clean_atom():
+    """Fixture providing a clean Atom instance"""
+    return molcpp.atom.Atom()
+
+
+@pytest.fixture
+def atom_pair():
+    """Fixture providing two clean Atom instances"""
+    return molcpp.atom.Atom(), molcpp.atom.Atom()
+
+
+@pytest.fixture
+def clean_bond():
+    """Fixture providing a clean Bond instance"""
+    return molcpp.bond.Bond()
+
+
+@pytest.fixture
+def bond_with_atoms(atom_pair):
+    """Fixture providing a Bond created with two atoms"""
+    atom1, atom2 = atom_pair
+    return molcpp.bond.Bond(atom1, atom2), atom1, atom2

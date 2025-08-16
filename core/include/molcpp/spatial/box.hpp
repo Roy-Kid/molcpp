@@ -79,6 +79,7 @@ class MOLCPP_EXPORT Box : public Region, public Boundary
 
     explicit Box(const Mat3 &matrix);
 
+    explicit Box(const Vec3 &lengths);
     explicit Box(const std::initializer_list<double> &lengths);
     explicit Box(const std::initializer_list<std::initializer_list<double>> &matrix);
 

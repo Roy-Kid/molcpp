@@ -9,6 +9,9 @@
 
 namespace molcpp {
 
+// Forward declaration
+class Atom;
+
 /**
  * @brief Abstract Bond entity representing a connection between entities.
  * Specific bond properties can be added via components.
@@ -19,6 +22,13 @@ public:
      * @brief Default constructor for Bond entity.
      */
     Bond() = default;
+    
+    /**
+     * @brief Constructor for Bond entity connecting two atoms.
+     * @param atom1 Reference to the first atom.
+     * @param atom2 Reference to the second atom.
+     */
+    Bond(const Atom& atom1, const Atom& atom2);
 
     /**
      * @brief Virtual destructor.

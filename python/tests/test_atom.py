@@ -1,200 +1,219 @@
-"""Test atom module functionality."""
+"""
+Test Atom functionality using pytest
+"""
 
-import numpy as np
 import pytest
+import molcpp
 
 
-def test_atom_import():
-    """Test that atom module can be imported."""
-    import molcpp
-    assert hasattr(molcpp, 'atom')
-
-
-def test_atom_creation():
-    """Test basic Atom creation."""
-    import molcpp
+class TestAtom:
+    """Test cases for Atom class"""
     
-    # Create an atom
-    atom = molcpp.atom.Atom()
-    assert atom is not None
+    def test_atom_creation(self):
+        """Test Atom creation and inheritance from Entity"""
+        atom = molcpp.atom.Atom()
+        
+        # Atom should have unique ID (inherited from Entity)
+        assert isinstance(atom.get_id(), int)
+        
+        # Multiple atoms should have different IDs
+        atom2 = molcpp.atom.Atom()
+        assert atom.get_id() != atom2.get_id()
     
-    # Test that it has an ID
-    atom_id = atom.get_id()
-    assert isinstance(atom_id, int)
-    assert atom_id >= 0
+    def test_atom_inherits_entity_methods(self, clean_atom):
+        """Test that Atom inherits all Entity component management methods"""
+        # Test add_component (inherited from Entity)
+        pos_comp = clean_atom.add_component(molcpp.ecs.Position, 1.0, 2.0, 3.0)
+        assert pos_comp is not None
+        assert pos_comp.x == 1.0
+        
+        # Test has_component (inherited from Entity)
+        assert clean_atom.has_component(molcpp.ecs.Position)
+        assert not clean_atom.has_component(molcpp.ecs.Element)
+        
+        # Test get_component (inherited from Entity)
+        retrieved_pos = clean_atom.get_component(molcpp.ecs.Position)
+        assert retrieved_pos is not None
+        assert retrieved_pos.x == 1.0
+        
+        # Test remove_component (inherited from Entity)
+        removed = clean_atom.remove_component(molcpp.ecs.Position)
+        assert removed is True
+        assert not clean_atom.has_component(molcpp.ecs.Position)
     
-    # Test string representation
-    repr_str = repr(atom)
-    assert isinstance(repr_str, str)
-    assert 'Atom' in repr_str
-    assert str(atom_id) in repr_str
-
-
-def test_atom_position_component():
-    """Test adding and managing Position component."""
-    import molcpp
+    def test_set_position_convenience_method(self, clean_atom):
+        """Test Atom's set_position convenience method"""
+        # Set position using convenience method
+        clean_atom.set_position(5.0, 6.0, 7.0)
+        
+        # Verify position was set correctly
+        pos_comp = clean_atom.get_component(molcpp.ecs.Position)
+        assert pos_comp is not None
+        assert pos_comp.x == 5.0
+        assert pos_comp.y == 6.0
+        assert pos_comp.z == 7.0
     
-    atom = molcpp.atom.Atom()
+    def test_set_element_convenience_method(self, clean_atom):
+        """Test Atom's set_element convenience method"""
+        # Set element using convenience method
+        clean_atom.set_element("N", 7)
+        
+        # Verify element was set correctly
+        elem_comp = clean_atom.get_component(molcpp.ecs.Element)
+        assert elem_comp is not None
+        assert elem_comp.symbol == "N"
+        assert elem_comp.atomic_number == 7
     
-    # Initially should not have position
-    assert not atom.has_position()
-    assert atom.get_position() is None
+    def test_atom_component_composition(self, clean_atom):
+        """Test Atom component composition capabilities"""
+        # Add multiple components
+        pos = clean_atom.add_component(molcpp.ecs.Position, 1.0, 2.0, 3.0)
+        elem = clean_atom.add_component(molcpp.ecs.Element, "C", 6)
+        mass = clean_atom.add_component(molcpp.ecs.Mass, 12.01)
+        radius = clean_atom.add_component(molcpp.ecs.Radius, 1.2)
+        vel = clean_atom.add_component(molcpp.ecs.Velocity, 0.1, 0.2, 0.3)
+        charge = clean_atom.add_component(molcpp.ecs.Charge, -1.0)
+        
+        # Verify all components exist
+        assert clean_atom.has_component(molcpp.ecs.Position)
+        assert clean_atom.has_component(molcpp.ecs.Element)
+        assert clean_atom.has_component(molcpp.ecs.Mass)
+        assert clean_atom.has_component(molcpp.ecs.Radius)
+        assert clean_atom.has_component(molcpp.ecs.Velocity)
+        assert clean_atom.has_component(molcpp.ecs.Charge)
+        
+        # Verify component data integrity
+        assert pos.x == 1.0 and pos.y == 2.0 and pos.z == 3.0
+        assert elem.symbol == "C" and elem.atomic_number == 6
+        assert mass.value == 12.01
+        assert radius.value == 1.2
+        assert vel.vx == 0.1 and vel.vy == 0.2 and vel.vz == 0.3
+        assert charge.value == -1.0
     
-    # Add position component
-    pos = atom.add_position(1.0, 2.0, 3.0)
-    assert atom.has_position()
-    assert pos.x == 1.0
-    assert pos.y == 2.0
-    assert pos.z == 3.0
+    def test_atom_repr(self):
+        """Test Atom string representation"""
+        atom = molcpp.atom.Atom()
+        repr_str = repr(atom)
+        assert "Atom" in repr_str
+        assert str(atom.get_id()) in repr_str
     
-    # Get position component
-    retrieved_pos = atom.get_position()
-    assert retrieved_pos is not None
-    assert retrieved_pos.x == 1.0
-    assert retrieved_pos.y == 2.0
-    assert retrieved_pos.z == 3.0
-
-
-def test_atom_position_from_numpy():
-    """Test adding Position component from numpy array."""
-    import molcpp
+    def test_atom_with_invalid_components(self, clean_atom):
+        """Test Atom behavior with invalid component operations"""
+        # Test getting non-existent component
+        non_existent = clean_atom.get_component(molcpp.ecs.BondInfo)
+        assert non_existent is None
+        
+        # Test removing non-existent component
+        removed = clean_atom.remove_component(molcpp.ecs.BondInfo)
+        assert removed is False
+        
+        # Test has_component for non-existent component
+        assert not clean_atom.has_component(molcpp.ecs.BondInfo)
     
-    atom = molcpp.atom.Atom()
+    def test_atom_component_lifecycle(self, clean_atom):
+        """Test complete lifecycle of atom components"""
+        # Start with no Position component
+        assert not clean_atom.has_component(molcpp.ecs.Position)
+        
+        # Add Position component
+        pos = clean_atom.add_component(molcpp.ecs.Position, 1.0, 2.0, 3.0)
+        assert clean_atom.has_component(molcpp.ecs.Position)
+        assert pos.x == 1.0
+        
+        # Modify component data
+        pos.x = 10.0
+        pos.y = 20.0
+        pos.z = 30.0
+        
+        # Verify modification persisted
+        retrieved = clean_atom.get_component(molcpp.ecs.Position)
+        assert retrieved.x == 10.0
+        assert retrieved.y == 20.0
+        assert retrieved.z == 30.0
+        
+        # Remove component
+        removed = clean_atom.remove_component(molcpp.ecs.Position)
+        assert removed is True
+        assert not clean_atom.has_component(molcpp.ecs.Position)
+        
+        # Verify component is gone
+        none_comp = clean_atom.get_component(molcpp.ecs.Position)
+        assert none_comp is None
     
-    # Add position from numpy array
-    arr = np.array([4.0, 5.0, 6.0])
-    pos = atom.add_position_from_array(arr)
-    assert pos.x == 4.0
-    assert pos.y == 5.0
-    assert pos.z == 6.0
+    def test_atom_physics_properties(self, clean_atom):
+        """Test Atom with physics-related components"""
+        # Add physics components
+        mass = clean_atom.add_component(molcpp.ecs.Mass, 1.008)  # Hydrogen mass
+        radius = clean_atom.add_component(molcpp.ecs.Radius, 0.37)  # Hydrogen radius
+        velocity = clean_atom.add_component(molcpp.ecs.Velocity, 100.0, 200.0, 300.0)
+        charge = clean_atom.add_component(molcpp.ecs.Charge, 1.0)  # Proton charge
+        
+        # Verify physics properties
+        assert mass.value == 1.008
+        assert radius.value == 0.37
+        assert velocity.vx == 100.0 and velocity.vy == 200.0 and velocity.vz == 300.0
+        assert charge.value == 1.0
+        
+        # Modify physics properties
+        velocity.vx = 150.0
+        charge.value = 0.0  # Neutral
+        
+        # Verify modifications
+        assert velocity.vx == 150.0
+        assert charge.value == 0.0
     
-    # Verify it's the same as getting the component
-    retrieved_pos = atom.get_position()
-    assert retrieved_pos.x == 4.0
-    assert retrieved_pos.y == 5.0
-    assert retrieved_pos.z == 6.0
-
-
-def test_atom_element_component():
-    """Test adding and managing Element component."""
-    import molcpp
+    def test_atom_element_properties(self, clean_atom):
+        """Test Atom with different element types"""
+        # Test hydrogen
+        clean_atom.set_element("H", 1)
+        elem = clean_atom.get_component(molcpp.ecs.Element)
+        assert elem.symbol == "H" and elem.atomic_number == 1
+        
+        # Change to carbon
+        elem.symbol = "C"
+        elem.atomic_number = 6
+        retrieved = clean_atom.get_component(molcpp.ecs.Element)
+        assert retrieved.symbol == "C" and retrieved.atomic_number == 6
+        
+        # Change to oxygen
+        elem.symbol = "O"
+        elem.atomic_number = 8
+        assert elem.symbol == "O" and elem.atomic_number == 8
     
-    atom = molcpp.atom.Atom()
-    
-    # Initially should not have element
-    assert not atom.has_element()
-    assert atom.get_element() is None
-    
-    # Add element component
-    elem = atom.add_element("C", 6)
-    assert atom.has_element()
-    assert elem.symbol == "C"
-    assert elem.atomic_number == 6
-    
-    # Get element component
-    retrieved_elem = atom.get_element()
-    assert retrieved_elem is not None
-    assert retrieved_elem.symbol == "C"
-    assert retrieved_elem.atomic_number == 6
-
-
-def test_atom_velocity_component():
-    """Test adding and managing Velocity component."""
-    import molcpp
-    
-    atom = molcpp.atom.Atom()
-    
-    # Add velocity component
-    vel = atom.add_velocity(0.1, 0.2, 0.3)
-    assert atom.has_velocity()
-    assert vel.vx == 0.1
-    assert vel.vy == 0.2
-    assert vel.vz == 0.3
-    
-    # Add velocity from numpy array
-    atom2 = molcpp.atom.Atom()
-    arr = np.array([0.4, 0.5, 0.6])
-    vel2 = atom2.add_velocity_from_array(arr)
-    assert vel2.vx == 0.4
-    assert vel2.vy == 0.5
-    assert vel2.vz == 0.6
-
-
-def test_atom_scalar_components():
-    """Test scalar components (radius, mass, charge)."""
-    import molcpp
-    
-    atom = molcpp.atom.Atom()
-    
-    # Add radius
-    radius = atom.add_radius(1.5)
-    assert atom.has_radius()
-    assert radius.value == 1.5
-    
-    # Add mass
-    mass = atom.add_mass(12.0)
-    assert atom.has_mass()
-    assert mass.value == 12.0
-    
-    # Add charge
-    charge = atom.add_charge(-0.5)
-    assert atom.has_charge()
-    assert charge.value == -0.5
-
-
-def test_atom_component_removal():
-    """Test removing components."""
-    import molcpp
-    
-    atom = molcpp.atom.Atom()
-    
-    # Add components
-    atom.add_position(1.0, 2.0, 3.0)
-    atom.add_element("H", 1)
-    atom.add_radius(1.0)
-    
-    # Verify they exist
-    assert atom.has_position()
-    assert atom.has_element()
-    assert atom.has_radius()
-    
-    # Remove components
-    assert atom.remove_position()
-    assert atom.remove_element()
-    assert atom.remove_radius()
-    
-    # Verify they're gone
-    assert not atom.has_position()
-    assert not atom.has_element()
-    assert not atom.has_radius()
-    
-    # Try removing again (should return False)
-    assert not atom.remove_position()
-
-
-def test_multiple_atoms():
-    """Test creating multiple atoms with different components."""
-    import molcpp
-    
-    # Create two atoms
-    atom1 = molcpp.atom.Atom()
-    atom2 = molcpp.atom.Atom()
-    
-    # They should have different IDs
-    assert atom1.get_id() != atom2.get_id()
-    
-    # Add different components to each
-    atom1.add_position(1.0, 2.0, 3.0)
-    atom1.add_element("C", 6)
-    
-    atom2.add_position(4.0, 5.0, 6.0)
-    atom2.add_element("N", 7)
-    
-    # Verify components are separate
-    pos1 = atom1.get_position()
-    pos2 = atom2.get_position()
-    assert pos1.x != pos2.x
-    
-    elem1 = atom1.get_element()
-    elem2 = atom2.get_element()
-    assert elem1.symbol != elem2.symbol
+    def test_atom_complex_scenario(self, clean_atom):
+        """Test complex atom setup with multiple operations"""
+        # Create a carbon atom with full properties
+        clean_atom.set_element("C", 6)
+        clean_atom.set_position(0.0, 0.0, 0.0)
+        
+        mass = clean_atom.add_component(molcpp.ecs.Mass, 12.01)
+        radius = clean_atom.add_component(molcpp.ecs.Radius, 0.77)
+        velocity = clean_atom.add_component(molcpp.ecs.Velocity, 0.0, 0.0, 0.0)
+        charge = clean_atom.add_component(molcpp.ecs.Charge, 0.0)
+        
+        # Verify complete atom setup
+        assert clean_atom.has_component(molcpp.ecs.Element)
+        assert clean_atom.has_component(molcpp.ecs.Position)
+        assert clean_atom.has_component(molcpp.ecs.Mass)
+        assert clean_atom.has_component(molcpp.ecs.Radius)
+        assert clean_atom.has_component(molcpp.ecs.Velocity)
+        assert clean_atom.has_component(molcpp.ecs.Charge)
+        
+        # Verify data integrity
+        elem = clean_atom.get_component(molcpp.ecs.Element)
+        pos = clean_atom.get_component(molcpp.ecs.Position)
+        
+        assert elem.symbol == "C" and elem.atomic_number == 6
+        assert pos.x == 0.0 and pos.y == 0.0 and pos.z == 0.0
+        assert mass.value == 12.01
+        assert radius.value == 0.77
+        assert velocity.vx == 0.0 and velocity.vy == 0.0 and velocity.vz == 0.0
+        assert charge.value == 0.0
+        
+        # Simulate movement
+        pos.x = 1.0
+        velocity.vx = 10.0
+        
+        # Verify changes
+        assert pos.x == 1.0
+        assert velocity.vx == 10.0

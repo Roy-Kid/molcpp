@@ -8,141 +8,94 @@
 #include <xtensor-python/pyarray.hpp>
 #include <molcpp/atom.hpp>
 #include <molcpp/ecs/components.hpp>
-#include <molcpp/types.hpp>
 
 namespace py = pybind11;
 
 void bind_atom(py::module_& m) {
-    // Atom bindings
+    // Atom bindings - inherits from Entity
     py::module_ atom_module = m.def_submodule("atom", "Atom-related classes");
     
-    py::class_<molcpp::Atom>(atom_module, "Atom")
+    py::class_<molcpp::Atom, molcpp::ecs::Entity>(atom_module, "Atom")
         .def(py::init<>(), "Create a new Atom entity")
-        .def("get_id", &molcpp::Atom::get_id, "Get the unique ID of this atom")
         
-        // Component management using lambdas to handle templates
-        .def("add_position", [](molcpp::Atom& atom, double x, double y, double z) -> molcpp::ecs::components::Position& {
-            return atom.add_component<molcpp::ecs::components::Position>(x, y, z);
-        }, "Add a Position component", py::arg("x") = 0.0, py::arg("y") = 0.0, py::arg("z") = 0.0,
-        py::return_value_policy::reference_internal)
-        
-        .def("add_position_from_array", [](molcpp::Atom& atom, const xt::pyarray<double>& arr) -> molcpp::ecs::components::Position& {
-            if (arr.size() != 3) {
-                throw std::invalid_argument("Array must have exactly 3 elements for Position");
+        // Convenience property access methods
+        .def("set_position", [](molcpp::Atom& atom, double x, double y, double z) {
+            auto* pos = atom.get_component<molcpp::ecs::components::Position>();
+            if (pos) {
+                pos->x = x; pos->y = y; pos->z = z;
+            } else {
+                atom.add_component<molcpp::ecs::components::Position>(x, y, z);
             }
-            return atom.add_component<molcpp::ecs::components::Position>(arr.flat(0), arr.flat(1), arr.flat(2));
-        }, "Add a Position component from numpy array", py::arg("array"),
-        py::return_value_policy::reference_internal)
+        }, "Set or update position", py::arg("x"), py::arg("y"), py::arg("z"))
         
-        .def("add_element", [](molcpp::Atom& atom, const std::string& symbol, int atomic_number) -> molcpp::ecs::components::Element& {
-            return atom.add_component<molcpp::ecs::components::Element>(symbol, atomic_number);
-        }, "Add an Element component", py::arg("symbol"), py::arg("atomic_number"),
-        py::return_value_policy::reference_internal)
-        
-        .def("add_radius", [](molcpp::Atom& atom, double value) -> molcpp::ecs::components::Radius& {
-            return atom.add_component<molcpp::ecs::components::Radius>(value);
-        }, "Add a Radius component", py::arg("value"),
-        py::return_value_policy::reference_internal)
-        
-        .def("add_velocity", [](molcpp::Atom& atom, double vx, double vy, double vz) -> molcpp::ecs::components::Velocity& {
-            return atom.add_component<molcpp::ecs::components::Velocity>(vx, vy, vz);
-        }, "Add a Velocity component", py::arg("vx") = 0.0, py::arg("vy") = 0.0, py::arg("vz") = 0.0,
-        py::return_value_policy::reference_internal)
-        
-        .def("add_velocity_from_array", [](molcpp::Atom& atom, const xt::pyarray<double>& arr) -> molcpp::ecs::components::Velocity& {
-            if (arr.size() != 3) {
-                throw std::invalid_argument("Array must have exactly 3 elements for Velocity");
+        .def("get_position", [](const molcpp::Atom& atom) -> py::tuple {
+            auto* pos = atom.get_component<molcpp::ecs::components::Position>();
+            if (pos) {
+                return py::make_tuple(pos->x, pos->y, pos->z);
             }
-            return atom.add_component<molcpp::ecs::components::Velocity>(arr.flat(0), arr.flat(1), arr.flat(2));
-        }, "Add a Velocity component from numpy array", py::arg("array"),
-        py::return_value_policy::reference_internal)
+            return py::make_tuple(0.0, 0.0, 0.0);
+        }, "Get position as (x, y, z) tuple")
         
-        .def("add_mass", [](molcpp::Atom& atom, double value) -> molcpp::ecs::components::Mass& {
-            return atom.add_component<molcpp::ecs::components::Mass>(value);
-        }, "Add a Mass component", py::arg("value"),
-        py::return_value_policy::reference_internal)
+        .def("set_element", [](molcpp::Atom& atom, const std::string& symbol, int atomic_number) {
+            auto* elem = atom.get_component<molcpp::ecs::components::Element>();
+            if (elem) {
+                elem->symbol = symbol; elem->atomic_number = atomic_number;
+            } else {
+                atom.add_component<molcpp::ecs::components::Element>(symbol, atomic_number);
+            }
+        }, "Set or update element", py::arg("symbol"), py::arg("atomic_number"))
         
-        .def("add_charge", [](molcpp::Atom& atom, double value) -> molcpp::ecs::components::Charge& {
-            return atom.add_component<molcpp::ecs::components::Charge>(value);
-        }, "Add a Charge component", py::arg("value"),
-        py::return_value_policy::reference_internal)
+        .def("get_element", [](const molcpp::Atom& atom) -> py::tuple {
+            auto* elem = atom.get_component<molcpp::ecs::components::Element>();
+            if (elem) {
+                return py::make_tuple(elem->symbol, elem->atomic_number);
+            }
+            return py::make_tuple("", 0);
+        }, "Get element as (symbol, atomic_number) tuple")
         
-        // Component getters
-        .def("get_position", [](molcpp::Atom& atom) -> molcpp::ecs::components::Position* {
-            return atom.get_component<molcpp::ecs::components::Position>();
-        }, "Get Position component", py::return_value_policy::reference_internal)
+        .def("set_mass", [](molcpp::Atom& atom, double mass) {
+            auto* m = atom.get_component<molcpp::ecs::components::Mass>();
+            if (m) {
+                m->value = mass;
+            } else {
+                atom.add_component<molcpp::ecs::components::Mass>(mass);
+            }
+        }, "Set or update mass", py::arg("mass"))
         
-        .def("get_element", [](molcpp::Atom& atom) -> molcpp::ecs::components::Element* {
-            return atom.get_component<molcpp::ecs::components::Element>();
-        }, "Get Element component", py::return_value_policy::reference_internal)
+        .def("get_mass", [](const molcpp::Atom& atom) -> double {
+            auto* m = atom.get_component<molcpp::ecs::components::Mass>();
+            return m ? m->value : 0.0;
+        }, "Get mass value")
         
-        .def("get_radius", [](molcpp::Atom& atom) -> molcpp::ecs::components::Radius* {
-            return atom.get_component<molcpp::ecs::components::Radius>();
-        }, "Get Radius component", py::return_value_policy::reference_internal)
+        .def("set_radius", [](molcpp::Atom& atom, double radius) {
+            auto* r = atom.get_component<molcpp::ecs::components::Radius>();
+            if (r) {
+                r->value = radius;
+            } else {
+                atom.add_component<molcpp::ecs::components::Radius>(radius);
+            }
+        }, "Set or update radius", py::arg("radius"))
         
-        .def("get_velocity", [](molcpp::Atom& atom) -> molcpp::ecs::components::Velocity* {
-            return atom.get_component<molcpp::ecs::components::Velocity>();
-        }, "Get Velocity component", py::return_value_policy::reference_internal)
-        
-        .def("get_mass", [](molcpp::Atom& atom) -> molcpp::ecs::components::Mass* {
-            return atom.get_component<molcpp::ecs::components::Mass>();
-        }, "Get Mass component", py::return_value_policy::reference_internal)
-        
-        .def("get_charge", [](molcpp::Atom& atom) -> molcpp::ecs::components::Charge* {
-            return atom.get_component<molcpp::ecs::components::Charge>();
-        }, "Get Charge component", py::return_value_policy::reference_internal)
-        
-        // Component existence checks
-        .def("has_position", [](const molcpp::Atom& atom) {
-            return atom.has_component<molcpp::ecs::components::Position>();
-        }, "Check if atom has Position component")
-        
-        .def("has_element", [](const molcpp::Atom& atom) {
-            return atom.has_component<molcpp::ecs::components::Element>();
-        }, "Check if atom has Element component")
-        
-        .def("has_radius", [](const molcpp::Atom& atom) {
-            return atom.has_component<molcpp::ecs::components::Radius>();
-        }, "Check if atom has Radius component")
-        
-        .def("has_velocity", [](const molcpp::Atom& atom) {
-            return atom.has_component<molcpp::ecs::components::Velocity>();
-        }, "Check if atom has Velocity component")
-        
-        .def("has_mass", [](const molcpp::Atom& atom) {
-            return atom.has_component<molcpp::ecs::components::Mass>();
-        }, "Check if atom has Mass component")
-        
-        .def("has_charge", [](const molcpp::Atom& atom) {
-            return atom.has_component<molcpp::ecs::components::Charge>();
-        }, "Check if atom has Charge component")
-        
-        // Component removal
-        .def("remove_position", [](molcpp::Atom& atom) {
-            return atom.remove_component<molcpp::ecs::components::Position>();
-        }, "Remove Position component")
-        
-        .def("remove_element", [](molcpp::Atom& atom) {
-            return atom.remove_component<molcpp::ecs::components::Element>();
-        }, "Remove Element component")
-        
-        .def("remove_radius", [](molcpp::Atom& atom) {
-            return atom.remove_component<molcpp::ecs::components::Radius>();
-        }, "Remove Radius component")
-        
-        .def("remove_velocity", [](molcpp::Atom& atom) {
-            return atom.remove_component<molcpp::ecs::components::Velocity>();
-        }, "Remove Velocity component")
-        
-        .def("remove_mass", [](molcpp::Atom& atom) {
-            return atom.remove_component<molcpp::ecs::components::Mass>();
-        }, "Remove Mass component")
-        
-        .def("remove_charge", [](molcpp::Atom& atom) {
-            return atom.remove_component<molcpp::ecs::components::Charge>();
-        }, "Remove Charge component")
+        .def("get_radius", [](const molcpp::Atom& atom) -> double {
+            auto* r = atom.get_component<molcpp::ecs::components::Radius>();
+            return r ? r->value : 0.0;
+        }, "Get radius value")
         
         .def("__repr__", [](const molcpp::Atom& atom) {
-            return "<molcpp.atom.Atom id=" + std::to_string(atom.get_id()) + ">";
+            std::string result = "<molcpp.atom.Atom id=" + std::to_string(atom.get_id());
+            
+            auto* elem = atom.get_component<molcpp::ecs::components::Element>();
+            if (elem) {
+                result += " element=" + elem->symbol;
+            }
+            
+            auto* pos = atom.get_component<molcpp::ecs::components::Position>();
+            if (pos) {
+                result += " pos=(" + std::to_string(pos->x) + "," + 
+                         std::to_string(pos->y) + "," + std::to_string(pos->z) + ")";
+            }
+            
+            result += ">";
+            return result;
         });
 }

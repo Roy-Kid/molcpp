@@ -18,11 +18,9 @@ message(STATUS "Found xtensor-python: ${xtensor-python_VERSION}")
 pybind11_add_module(_bindings 
     bindings/_bindings.cpp
     bindings/atom.cpp
-    # bindings/bond.cpp
-    # bindings/molecule.cpp
-    # bindings/spatial.cpp
-    # bindings/ecs.cpp
-    # bindings/utils.cpp
+    bindings/bond.cpp
+    bindings/ecs.cpp
+    bindings/spatial.cpp
 )
 
 # Set module properties
@@ -31,6 +29,7 @@ set_target_properties(_bindings PROPERTIES
     CXX_STANDARD_REQUIRED ON
     PREFIX ""
     SUFFIX "${CMAKE_SHARED_LIBRARY_SUFFIX}"
+    POSITION_INDEPENDENT_CODE TRUE
 )
 
 # Link libraries in the correct order (following xtensor-python examples)
