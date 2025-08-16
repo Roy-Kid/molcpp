@@ -1,5 +1,4 @@
 # Python bindings CMakeLists.txt
-# This file is included from the root CMakeLists.txt when MOLCPP_BUILD_PYTHON=ON
 
 # Find Python and components first
 find_package(Python REQUIRED COMPONENTS Interpreter Development NumPy)
@@ -16,7 +15,15 @@ message(STATUS "Found pybind11: ${pybind11_VERSION}")
 message(STATUS "Found xtensor-python: ${xtensor-python_VERSION}")
 
 # Create Python extension module
-pybind11_add_module(_bindings src/molcpp/_bindings.cpp)
+pybind11_add_module(_bindings 
+    bindings/_bindings.cpp
+    bindings/atom.cpp
+    # bindings/bond.cpp
+    # bindings/molecule.cpp
+    # bindings/spatial.cpp
+    # bindings/ecs.cpp
+    # bindings/utils.cpp
+)
 
 # Set module properties
 set_target_properties(_bindings PROPERTIES
@@ -56,12 +63,12 @@ target_include_directories(_bindings PRIVATE
 )
 
 # Set pybind11 extension properties
-pybind11_extension(_bindings)
-if(NOT MSVC AND NOT ${CMAKE_BUILD_TYPE} MATCHES Debug|RelWithDebInfo)
-    pybind11_strip(_bindings)
-endif()
+# pybind11_extension(_bindings)
+# if(NOT MSVC AND NOT ${CMAKE_BUILD_TYPE} MATCHES Debug|RelWithDebInfo)
+#     pybind11_strip(_bindings)
+# endif()
 
-set_target_properties(_bindings PROPERTIES CXX_VISIBILITY_PRESET "hidden")
+# set_target_properties(_bindings PROPERTIES CXX_VISIBILITY_PRESET "hidden")
 
 # Set output properties
 set_target_properties(_bindings PROPERTIES

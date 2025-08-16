@@ -6,7 +6,7 @@ readme = "README.md"
 license = "BSD-3-Clause"
 description = "Python bindings for molcpp molecular modeling library"
 
-dependencies = ["numpy", "xtensor-python"]
+dependencies = ["numpy"]
 
 keywords = ["machine learning", "molecular modeling"]
 classifiers = [
@@ -26,6 +26,22 @@ classifiers = [
 ]
 
 ### ======================================================================== ###
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+
+### ======================================================================== ###
 [build-system]
-requires = ["scikit-build-core"]
+requires = ["scikit-build-core", "numpy>=2", "pybind11>=3"]
 build-backend = "scikit_build_core.build"
+
+[tool.scikit-build]
+cmake.source-dir="../"
+cmake.args = ["-DMOLCPP_BUILD_CORE=ON", "-DMOLCPP_BUILD_PYTHON=ON"]
