@@ -1,250 +1,224 @@
 #pragma once
-
-#include <array>
 #include <memory>
 #include <vector>
-#include <cmath>
-#include <algorithm>
-#include <xtensor/containers/xarray.hpp>
-#include <xtensor/views/xview.hpp>
-#include <xtensor/core/xmath.hpp>
 #include "molcpp/types.hpp"
-#include "molcpp/spatial/boundary.hpp"
 
 namespace molcpp {
 
-/**
- * @brief Abstract base class for spatial regions
- * 
- * Used to determine if particle coordinates satisfy geometric constraints.
- * Primarily used in molecular packing tools (molpack).
- */
 class Region {
 public:
     virtual ~Region() = default;
 
-    /**
-     * @brief Check which particles are inside this region
-     * @param coords Array of shape (n, 3) containing particle positions
-     * @return Boolean mask of shape (n,) indicating which points are inside
-     */
-    virtual xt::xarray<bool> isin(const xt::xarray<double>& coords) const = 0;
+    // Membership query.
+    // Input: XYZ with shape (3) or (N,3).
+    // Output: boolean array with shape ()/(1) for single, or (N) for batch.
+    virtual xt::xarray<bool> isIn(const XYZ& points) const = 0;
 
-    /**
-     * @brief Get the bounding box of this region
-     * @return Array containing {xlo, xhi, ylo, yhi, zlo, zhi}
-     * Used for coarse spatial filtering (e.g., octree construction)
-     */
-    virtual std::array<double, 6> boundary() const = 0;
-
-    /**
-     * @brief Get the volume of this region (if computable)
-     * @return Volume of the region, or NaN if not computable
-     */
-    virtual double volume() const = 0;
-
-    /**
-     * @brief Check if this region can work with a boundary condition
-     * @param boundary Boundary condition to check compatibility with
-     * @return true if compatible, false otherwise
-     */
-    virtual bool is_compatible_with(const Boundary& boundary) const {
-        // Default implementation: regions are compatible with all boundaries
-        (void)boundary; // Suppress unused parameter warning
-        return true;
-    }
-
-protected:
-    // Numerical tolerance for floating point comparisons
-    static constexpr double TOLERANCE = 1e-6;
+    // Finite volume (if applicable). For unbounded, return NaN or throw.
+    virtual double getVolume() const = 0;
 };
 
 /**
- * @brief Region representing the interior of a cube/rectangular box
+ * @brief Region representing a parallelepiped (triclinic box)
  */
-class InsideCube : public Region {
+class ParallelepipedRegion : public Region {
 public:
     /**
-     * @brief Construct a cube region
-     * @param lo Lower corner of the cube
-     * @param L Edge length of the cube (scalar for cube, Vec3 for box)
+     * @brief Construct from triclinic cell matrix H and origin O
+     * @param matrix 3x3 matrix where columns are lattice vectors
+     * @param origin Origin point of the parallelepiped
      */
-    InsideCube(const Vec3& lo, double L);
-    
-    /**
-     * @brief Construct a rectangular box region
-     * @param lo Lower corner of the box
-     * @param lengths Edge lengths [Lx, Ly, Lz]
-     */
-    InsideCube(const Vec3& lo, const Vec3& lengths);
+    ParallelepipedRegion(const Mat3<float>& matrix, const Vec3<float>& origin);
 
-    xt::xarray<bool> isin(const xt::xarray<double>& coords) const override;
-    std::array<double, 6> boundary() const override;
-    double volume() const override;
+    xt::xarray<bool> isIn(const XYZ& points) const override;
+    double getVolume() const override;
 
-    const Vec3& get_lower_corner() const { return lo_; }
-    const Vec3& get_lengths() const { return lengths_; }
+    const Mat3<float>& getMatrix() const noexcept { return _matrix; }
+    const Vec3<float>& getOrigin() const noexcept { return _origin; }
 
 private:
-    Vec3 lo_;      ///< Lower corner coordinates
-    Vec3 lengths_; ///< Edge lengths
+    Mat3<float> _matrix;  // H (columns a,b,c), triclinic-supported
+    Vec3<float> _origin;  // O
 };
 
 /**
- * @brief Region representing the interior of a sphere
+ * @brief Region representing a cube
  */
-class InsideSphere : public Region {
+class CubeRegion : public Region {
 public:
     /**
-     * @brief Construct a sphere region
-     * @param center Center of the sphere
-     * @param R Radius of the sphere
+     * @brief Construct from lower corner and edge length
+     * @param lower_corner Lower corner point (x_min, y_min, z_min)
+     * @param edge_length Edge length of the cube
      */
-    InsideSphere(const Vec3& center, double R);
+    CubeRegion(const Vec3<float>& lower_corner, float edge_length);
 
-    xt::xarray<bool> isin(const xt::xarray<double>& coords) const override;
-    std::array<double, 6> boundary() const override;
-    double volume() const override;
+    /**
+     * @brief Construct from lower corner and edge lengths
+     * @param lower_corner Lower corner point (x_min, y_min, z_min)
+     * @param edge_lengths Edge lengths (dx, dy, dz)
+     */
+    CubeRegion(const Vec3<float>& lower_corner, const Vec3<float>& edge_lengths);
 
-    const Vec3& get_center() const { return center_; }
-    double get_radius() const { return R_; }
+    xt::xarray<bool> isIn(const XYZ& points) const override;
+    double getVolume() const override;
+
+    const Vec3<float>& getLowerCorner() const noexcept { return _lower_corner; }
+    const Vec3<float>& getEdgeLengths() const noexcept { return _edge_lengths; }
 
 private:
-    Vec3 center_; ///< Center coordinates
-    double R_;    ///< Radius
+    Vec3<float> _lower_corner;
+    Vec3<float> _edge_lengths;
+    static constexpr float TOLERANCE = 1e-6f;
 };
 
 /**
- * @brief Region representing the interior of a cylinder
+ * @brief Region representing a sphere
  */
-class InsideCylinder : public Region {
+class SphereRegion : public Region {
 public:
     /**
-     * @brief Construct a cylinder region
-     * @param center1 Center of one circular end
-     * @param center2 Center of the other circular end
+     * @brief Construct from center and radius
+     * @param center Center point of the sphere
+     * @param radius Radius of the sphere
+     */
+    SphereRegion(const Vec3<float>& center, float radius);
+
+    xt::xarray<bool> isIn(const XYZ& points) const override;
+    double getVolume() const override;
+
+    const Vec3<float>& getCenter() const noexcept { return _center; }
+    float getRadius() const noexcept { return _radius; }
+
+private:
+    Vec3<float> _center;
+    float _radius;
+    static constexpr float TOLERANCE = 1e-6f;
+};
+
+/**
+ * @brief Region representing a cylinder
+ */
+class CylinderRegion : public Region {
+public:
+    /**
+     * @brief Construct from two end points and radius
+     * @param end1 First end point of the cylinder
+     * @param end2 Second end point of the cylinder
      * @param radius Radius of the cylinder
      */
-    InsideCylinder(const Vec3& center1, const Vec3& center2, double radius);
+    CylinderRegion(const Vec3<float>& end1, const Vec3<float>& end2, float radius);
 
-    xt::xarray<bool> isin(const xt::xarray<double>& coords) const override;
-    std::array<double, 6> boundary() const override;
-    double volume() const override;
+    xt::xarray<bool> isIn(const XYZ& points) const override;
+    double getVolume() const override;
 
-    const Vec3& get_center1() const { return center1_; }
-    const Vec3& get_center2() const { return center2_; }
-    double get_radius() const { return radius_; }
-    double get_height() const;
+    const Vec3<float>& getEnd1() const noexcept { return _end1; }
+    const Vec3<float>& getEnd2() const noexcept { return _end2; }
+    float getRadius() const noexcept { return _radius; }
+    float getHeight() const noexcept { return _height; }
 
 private:
-    Vec3 center1_; ///< Center of first end
-    Vec3 center2_; ///< Center of second end
-    double radius_; ///< Radius
-    Vec3 axis_;     ///< Normalized axis vector
-    double height_; ///< Height (distance between centers)
+    Vec3<float> _end1;
+    Vec3<float> _end2;
+    float _radius;
+    float _height;
+    Vec3<float> _axis;  // Normalized axis vector
+    static constexpr float TOLERANCE = 1e-6f;
 };
 
 /**
- * @brief Region representing points within a certain distance from a plane
+ * @brief Region representing a plane with thickness
  */
-class NearPlane : public Region {
+class PlaneRegion : public Region {
 public:
     /**
-     * @brief Construct a plane region
+     * @brief Construct from a point on the plane, normal vector, and thickness
      * @param point A point on the plane
-     * @param normal Normal vector to the plane (will be normalized)
-     * @param thickness Half-thickness of the slab around the plane
+     * @param normal Normal vector to the plane
+     * @param thickness Thickness of the region around the plane
      */
-    NearPlane(const Vec3& point, const Vec3& normal, double thickness);
+    PlaneRegion(const Vec3<float>& point, const Vec3<float>& normal, float thickness);
 
-    xt::xarray<bool> isin(const xt::xarray<double>& coords) const override;
-    std::array<double, 6> boundary() const override;
-    double volume() const override;
+    xt::xarray<bool> isIn(const XYZ& points) const override;
+    double getVolume() const override;
 
-    const Vec3& get_point() const { return point_; }
-    const Vec3& get_normal() const { return normal_; }
-    double get_thickness() const { return thickness_; }
+    const Vec3<float>& getPoint() const noexcept { return _point; }
+    const Vec3<float>& getNormal() const noexcept { return _normal; }
+    float getThickness() const noexcept { return _thickness; }
 
 private:
-    Vec3 point_;      ///< Point on the plane
-    Vec3 normal_;     ///< Unit normal vector
-    double thickness_; ///< Half-thickness of slab
+    Vec3<float> _point;
+    Vec3<float> _normal;  // Normalized
+    float _thickness;
+    static constexpr float TOLERANCE = 1e-6f;
 };
 
 /**
- * @brief Boolean AND combination of multiple regions
- * All sub-regions must be true for isin to return true
+ * @brief Region representing the intersection of multiple regions
  */
-class AndRegion : public Region {
+class IntersectionRegion : public Region {
 public:
     /**
-     * @brief Construct AND region from vector of regions
-     * @param regions Vector of shared pointers to regions
+     * @brief Construct from a vector of regions
+     * @param regions Vector of regions to intersect
      */
-    explicit AndRegion(std::vector<std::shared_ptr<Region>> regions);
+    IntersectionRegion(std::vector<std::shared_ptr<Region>> regions);
 
     /**
-     * @brief Construct AND region from two regions
+     * @brief Construct from two regions
+     * @param region1 First region
+     * @param region2 Second region
      */
-    AndRegion(std::shared_ptr<Region> region1, std::shared_ptr<Region> region2);
+    IntersectionRegion(std::shared_ptr<Region> region1, std::shared_ptr<Region> region2);
 
-    xt::xarray<bool> isin(const xt::xarray<double>& coords) const override;
-    std::array<double, 6> boundary() const override;
-    double volume() const override;
-
-    const std::vector<std::shared_ptr<Region>>& get_regions() const { return regions_; }
+    xt::xarray<bool> isIn(const XYZ& points) const override;
+    double getVolume() const override;
 
 private:
-    std::vector<std::shared_ptr<Region>> regions_;
+    std::vector<std::shared_ptr<Region>> _regions;
 };
 
 /**
- * @brief Boolean OR combination of multiple regions
- * At least one sub-region must be true for isin to return true
+ * @brief Region representing the union of multiple regions
  */
-class OrRegion : public Region {
+class UnionRegion : public Region {
 public:
     /**
-     * @brief Construct OR region from vector of regions
-     * @param regions Vector of shared pointers to regions
+     * @brief Construct from a vector of regions
+     * @param regions Vector of regions to union
      */
-    explicit OrRegion(std::vector<std::shared_ptr<Region>> regions);
+    UnionRegion(std::vector<std::shared_ptr<Region>> regions);
 
     /**
-     * @brief Construct OR region from two regions
+     * @brief Construct from two regions
+     * @param region1 First region
+     * @param region2 Second region
      */
-    OrRegion(std::shared_ptr<Region> region1, std::shared_ptr<Region> region2);
+    UnionRegion(std::shared_ptr<Region> region1, std::shared_ptr<Region> region2);
 
-    xt::xarray<bool> isin(const xt::xarray<double>& coords) const override;
-    std::array<double, 6> boundary() const override;
-    double volume() const override;
-
-    const std::vector<std::shared_ptr<Region>>& get_regions() const { return regions_; }
+    xt::xarray<bool> isIn(const XYZ& points) const override;
+    double getVolume() const override;
 
 private:
-    std::vector<std::shared_ptr<Region>> regions_;
+    std::vector<std::shared_ptr<Region>> _regions;
 };
 
 /**
- * @brief Boolean NOT of a region
- * Returns the logical negation of the wrapped region
+ * @brief Region representing the complement of another region
  */
-class NotRegion : public Region {
+class ComplementRegion : public Region {
 public:
     /**
-     * @brief Construct NOT region
-     * @param region The region to negate
+     * @brief Construct from a region to complement
+     * @param region Region to complement
      */
-    explicit NotRegion(std::shared_ptr<Region> region);
+    ComplementRegion(std::shared_ptr<Region> region);
 
-    xt::xarray<bool> isin(const xt::xarray<double>& coords) const override;
-    std::array<double, 6> boundary() const override;
-    double volume() const override;
-
-    const std::shared_ptr<Region>& get_region() const { return region_; }
+    xt::xarray<bool> isIn(const XYZ& points) const override;
+    double getVolume() const override;
 
 private:
-    std::shared_ptr<Region> region_;
+    std::shared_ptr<Region> _region;
 };
 
 } // namespace molcpp

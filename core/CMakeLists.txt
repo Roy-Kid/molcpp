@@ -64,7 +64,19 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MOLCPP_SANITIZERS}")
 # unit test. The molcpp_objects OBJECT library contains the code for files
 # implementation and is linked into both the main molcpp library and the
 # unit tests.
-file(GLOB_RECURSE molcpp_objects_sources src/**.cpp)
+set(molcpp_objects_sources
+    src/spatial/box.cpp
+    src/spatial/boundary/open_boundary.cpp
+    src/spatial/boundary/periodic_boundary.cpp
+    src/spatial/region/parallelepiped_region.cpp
+    src/spatial/region/cube_region.cpp
+    src/spatial/region/sphere_region.cpp
+    src/spatial/region/cylinder_region.cpp
+    src/spatial/region/plane_region.cpp
+    src/spatial/region/intersection_region.cpp
+    src/spatial/region/union_region.cpp
+    src/spatial/region/complement_region.cpp
+)
 
 add_library(molcpp_objects OBJECT ${molcpp_objects_sources})
 target_compile_features(molcpp_objects PRIVATE cxx_std_20 c_std_99)

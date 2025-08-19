@@ -1,167 +1,45 @@
-#ifndef MOLCPP_BOX_HPP
-#define MOLCPP_BOX_HPP
-
+#pragma once
+#include <memory>
 #include "molcpp/types.hpp"
-#include "molcpp/exports.h"
 #include "molcpp/spatial/region.hpp"
-#include "molcpp/spatial/boundary.hpp"
 
-#include "xtensor-blas/xlinalg.hpp"
-#include <initializer_list>
-#include <xtensor/containers/xarray.hpp>
-#include <xtensor/generators/xbuilder.hpp>
-#include <xtensor/containers/xfixed.hpp>
-#include <xtensor/core/xmath.hpp>
+namespace molcpp {
 
-namespace molcpp
-{
+class Boundary; // forward declaration
 
-constexpr double pi = 3.141592653589793238463;
+class Box : public Region {
+public:
+    // Construct from triclinic cell matrix H and origin O.
+    // pbc flags per axis (true = periodic).
+    Box(const Mat3<float>& matrix, const Vec3<float>& origin, const Vec3<bool>& pbc);
 
-static double deg2rad(double x)
-{
-    return x * pi / 180.0;
-}
+    // Factories
+    static Box cube(float length, const Vec3<float>& origin, const Vec3<bool>& pbc);
+    static Box orthorhombic(const Vec3<float>& lengths, const Vec3<float>& origin, const Vec3<bool>& pbc);
 
-// static double rad2deg(double x)
-// {
-//     return x * 180.0 / pi;
-// }
+    // Accessors
+    const Mat3<float>& matrix() const noexcept { return _region.getMatrix(); }
+    const Vec3<float>& origin() const noexcept { return _region.getOrigin(); }
+    const Vec3<bool>& pbc() const noexcept { return _pbc; }
 
-static double cosd(double theta)
-{
-    return cos(deg2rad(theta));
-}
+    // Coordinate transforms (XYZ with shape (3) or (N,3))
+    XYZ toFrac(const XYZ& cart) const;  // frac = H^{-1} @ (cart - origin)
+    XYZ toCart(const XYZ& frac) const;  // cart = origin + H @ frac
 
-static double sind(double theta)
-{
-    return sin(deg2rad(theta));
-}
+    // Region override (delegates to _region)
+    xt::xarray<bool> isIn(const XYZ& points) const override;
 
-static bool is_close_zero(double value)
-{
-    // We think that 0.00001 is close enough to 0
-    return fabs(value) < 1e-5;
-}
+    // Cell volume (|det(H)|)
+    double getVolume() const override;
 
-// static bool is_roughly_90(double value)
-// {
-//     // We think that 89.999° is close enough to 90°
-//     return fabs(value - 90.0) < 1e-3;
-// }
+    // Boundary-aware ops (vectorized)
+    XYZ wrap(const XYZ& points) const;  // wrap into primary cell
+    XYZ delta(const XYZ& a, const XYZ& b, bool minimumImage = true) const;
 
-static bool is_upper_triangular(const Mat3 &matrix)
-{
-    bool is_tril_zero = is_close_zero(matrix(1, 0)) && is_close_zero(matrix(2, 0)) && is_close_zero(matrix(2, 1));
-    return is_tril_zero;
-}
-
-static bool is_diagonal(const Mat3 &matrix)
-{
-
-    bool is_tril_zero = is_upper_triangular(matrix);
-    bool is_triu_zero = is_close_zero(matrix(0, 1)) && is_close_zero(matrix(0, 2)) && is_close_zero(matrix(1, 2));
-    return is_tril_zero && is_triu_zero;
-}
-
-class MOLCPP_EXPORT Box : public Region, public Boundary
-{
-  public:
-    enum Style
-    {
-        FREE,
-        ORTHOGONAL,
-        TRICLINIC
-    };
-
-    /// Construct an `INFINITY` box, with all lengths set to 0
-    Box();
-
-    explicit Box(const Mat3 &matrix);
-
-    explicit Box(const Vec3 &lengths);
-    explicit Box(const std::initializer_list<double> &lengths);
-    explicit Box(const std::initializer_list<std::initializer_list<double>> &matrix);
-
-    ~Box() override = default;
-    Box(const Box &other) = default;
-    Box &operator=(const Box &other) = default;
-    Box(Box &other) noexcept = default;
-    Box &operator=(Box &&other) noexcept = default;
-
-    static Box from_lengths_angles(const Vec3 &lengths, const Vec3 &angles);
-
-    // static Box from_lengths_tilts(const Vec3 &lengths, const Vec3 &tilts);
-
-    static Mat3 calc_matrix_from_lengths_angles(const Vec3 &lengths, const Vec3 &angles);
-
-    static Mat3 calc_matrix_from_size_tilts(const Vec3 &lengths, const Vec3 &tilts);
-
-    static Vec3 calc_lengths_from_matrix(const Mat3 &matrix);
-
-    static Vec3 calc_angles_from_matrix(const Mat3 &matrix);
-
-    static auto calc_style_from_matrix(const Mat3 &matrix) -> Style;
-
-    static auto check_matrix(const Mat3 &matrix) -> Mat3;
-
-    void set_lengths(const Vec3 &lengths);
-
-    void set_angles(const Vec3 &angles);
-
-    void set_matrix(const Mat3 &matrix);
-
-    void set_lengths_angles(const Vec3 &lengths, const Vec3 &angles);
-
-    void set_lengths_tilts(const Vec3 &lengths, const Vec3 &tilts);
-
-    // Region interface
-    xt::xarray<bool> isin(const xt::xarray<double>& xyz) const override;
-    std::array<double, 6> boundary() const override;
-    double volume() const override;
-
-    // Boundary interface  
-    xt::xarray<double> wrap(const xt::xarray<double>& xyz) const override;
-    xt::xarray<double> minimum_image(const xt::xarray<double>& r1, 
-                                    const xt::xarray<double>& r2) const override;
-    std::array<double, 6> get_bounds() const override;
-    std::array<bool, 3> is_periodic() const override;
-
-    // Box-specific wrapping methods
-    auto wrap_orth(const xt::xarray<double> &xyz) const -> xt::xarray<double>;
-
-    auto wrap_tric(const xt::xarray<double> &xyz) const -> xt::xarray<double>;
-
-    auto wrap_free(const xt::xarray<double> &xyz) const -> xt::xarray<double>;
-
-    auto get_style() const -> Style{
-        return calc_style_from_matrix(_matrix);
-    }
-
-    auto get_matrix() const -> Mat3
-    {
-      return _matrix;
-    }
-
-    auto get_inv() const -> Mat3
-    {
-        return xt::linalg::inv(_matrix);
-    }
-
-    auto get_lengths() const -> Vec3;
-
-    auto get_angles() const -> Vec3;
-
-    auto get_volume() const -> double;
-
-    auto get_distance_between_faces() const -> Vec3;
-
-  private:
-    Mat3 _matrix;
+private:
+    Vec3<bool> _pbc;                // per-axis periodic mask
+    ParallelepipedRegion _region;   // geometric region
+    std::unique_ptr<Boundary> _boundary; // chosen from _pbc
 };
 
-bool MOLCPP_EXPORT operator==(const Box &rhs, const Box &lhs);
-bool MOLCPP_EXPORT operator!=(const Box &rhs, const Box &lhs);
-
 } // namespace molcpp
-#endif // MOLCPP_BOX_HPP

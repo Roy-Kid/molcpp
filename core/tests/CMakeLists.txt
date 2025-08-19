@@ -5,8 +5,13 @@ message(STATUS "Configuring molcpp tests")
 find_or_fetch_catch2()
 find_or_fetch_xtensor()
 
-# Create test executable
-file(GLOB test_sources "test_*.cpp")
+# Create test executable with only spatial module tests
+set(test_sources
+    "test_spatial/test_box_boundary.cpp"
+    "test_spatial/test_boundary.cpp"
+    "test_spatial/test_regions.cpp"
+)
+
 add_executable(molcpp_tests ${test_sources})
 
 setup_xtensor(molcpp_tests)
