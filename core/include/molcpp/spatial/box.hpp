@@ -2,6 +2,7 @@
 #include <memory>
 #include "molcpp/types.hpp"
 #include "molcpp/spatial/region.hpp"
+#include "molcpp/spatial/boundary.hpp"
 
 namespace molcpp {
 
@@ -28,6 +29,10 @@ public:
 
     // Region override (delegates to _region)
     xt::xarray<bool> isIn(const XYZ& points) const override;
+    
+    // Additional methods for backward compatibility
+    Vec3<float> getNearestPlaneDistance() const;
+    Vec3<float> getLatticeVector(int index) const;
 
     // Cell volume (|det(H)|)
     double getVolume() const override;

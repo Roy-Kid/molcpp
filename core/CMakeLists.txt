@@ -76,6 +76,8 @@ set(molcpp_objects_sources
     src/spatial/region/intersection_region.cpp
     src/spatial/region/union_region.cpp
     src/spatial/region/complement_region.cpp
+    src/locality/NeighborList.cpp
+    src/locality/AABBQuery.cpp
 )
 
 add_library(molcpp_objects OBJECT ${molcpp_objects_sources})

@@ -77,4 +77,29 @@ XYZ Box::delta(const XYZ& a, const XYZ& b, bool minimumImage) const {
     return _boundary->delta(*this, a, b, minimumImage);
 }
 
+// Additional methods for backward compatibility
+Vec3<float> Box::getNearestPlaneDistance() const {
+    // For a box, the nearest plane distance is half the box length in each dimension
+    // This represents the distance from the center to the nearest face
+    Mat3<float> const& mat = matrix();
+    Vec3<float> result;
+    
+    // For orthogonal boxes, this is simply half the diagonal elements
+    // For triclinic boxes, we need to consider the actual box dimensions
+    result[0] = std::abs(mat(0, 0)) / 2.0f;
+    result[1] = std::abs(mat(1, 1)) / 2.0f;
+    result[2] = std::abs(mat(2, 2)) / 2.0f;
+    
+    return result;
+}
+
+Vec3<float> Box::getLatticeVector(int index) const {
+    Mat3<float> const& mat = matrix();
+    Vec3<float> result;
+    result[0] = mat(index, 0);
+    result[1] = mat(index, 1);
+    result[2] = mat(index, 2);
+    return result;
+}
+
 } // namespace molcpp

@@ -10,6 +10,11 @@ set(test_sources
     "test_spatial/test_box_boundary.cpp"
     "test_spatial/test_boundary.cpp"
     "test_spatial/test_regions.cpp"
+    "test_locality/test_neighbor_bond.cpp"
+    "test_locality/test_neighbor_list.cpp"
+    "test_locality/test_aabb_simple.cpp"
+    "test_locality/test_aabb_query.cpp"
+    "test_locality/test_aabb_simd.cpp"
 )
 
 add_executable(molcpp_tests ${test_sources})
