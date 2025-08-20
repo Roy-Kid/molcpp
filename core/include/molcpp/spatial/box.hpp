@@ -14,6 +14,21 @@ public:
     // pbc flags per axis (true = periodic).
     Box(const Mat3<float>& matrix, const Vec3<float>& origin, const Vec3<bool>& pbc);
 
+    // Copy constructor
+    Box(const Box& other);
+
+    // Copy assignment operator
+    Box& operator=(const Box& other);
+
+    // Move constructor
+    Box(Box&& other) noexcept;
+
+    // Move assignment operator
+    Box& operator=(Box&& other) noexcept;
+
+    // Destructor
+    ~Box();
+
     // Factories
     static Box cube(float length, const Vec3<float>& origin, const Vec3<bool>& pbc);
     static Box orthorhombic(const Vec3<float>& lengths, const Vec3<float>& origin, const Vec3<bool>& pbc);

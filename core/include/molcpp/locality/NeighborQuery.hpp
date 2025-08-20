@@ -11,7 +11,7 @@
 #include <stdexcept>
 #include <utility>
 #include <vector>
-
+#include <xtensor/generators/xbuilder.hpp>
 #include "molcpp/spatial/box.hpp"
 #include "molcpp/locality/NeighborBond.hpp"
 #include "molcpp/locality/NeighborList.hpp"
@@ -81,7 +81,7 @@ public:
 
     //! Constructor
     NeighborQuery(const Box& box, const XYZ& points)
-        : m_box(box), m_points(points), m_n_points(points.shape(0))
+        : _box(box), _points(points), _n_points(points.shape(0))
     {
     }
 
@@ -96,7 +96,7 @@ public:
     query(const XYZ& query_points, QueryArgs query_args) const
     {
         // pair calculations using non-periodic boxes should fail
-        Vec3<bool> const periodic = m_box.pbc();
+        Vec3<bool> const periodic = _box.pbc();
         if (!(periodic[0] && periodic[1] && periodic[2]))
         {
             throw std::runtime_error("NeighborQuery requires periodic boundary conditions.");
@@ -116,19 +116,19 @@ public:
     //! Get the simulation box
     const Box& getBox() const
     {
-        return m_box;
+        return _box;
     }
 
     //! Get the number of reference points
     unsigned int getNPoints() const
     {
-        return m_n_points;
+        return _n_points;
     }
 
     //! Get the reference points
     const XYZ& getPoints() const
     {
-        return m_points;
+        return _points;
     }
 
     //! Access a specific point by index
@@ -136,15 +136,35 @@ public:
      */
     Vec3<float> operator[](unsigned int index) const
     {
-        if (index >= m_n_points)
+        if (index >= _n_points)
         {
             throw std::out_of_range("Point index out of range.");
         }
         Vec3<float> point;
-        point[0] = m_points(index, 0);
-        point[1] = m_points(index, 1);
-        point[2] = m_points(index, 2);
+        point[0] = _points(index, 0);
+        point[1] = _points(index, 1);
+        point[2] = _points(index, 2);
         return point;
+    }
+
+    //! Update the simulation box
+    virtual void setBox(const Box& box)
+    {
+        _box = box;
+    }
+
+    //! Update the reference points
+    virtual void setPoints(const XYZ& points)
+    {
+        _points = points;
+        _n_points = static_cast<unsigned int>(points.shape(0));
+    }
+
+    //! Add new points to the existing set
+    virtual void addPoints(const XYZ& points)
+    {
+        _points = xt::eval(xt::concatenate(xt::xtuple(_points, points), 0));
+        _n_points = static_cast<unsigned int>(_points.shape(0));
     }
 
 protected:
@@ -181,9 +201,9 @@ protected:
         }
     }
 
-    const Box& m_box;        //!< Simulation box where the particles belong.
-    const XYZ m_points; //!< Point coordinates.
-    unsigned int m_n_points;     //!< Number of points.
+    Box _box;        //!< Simulation box where the particles belong.
+    XYZ _points; //!< Point coordinates.
+    unsigned int _n_points;     //!< Number of points.
 };
 
 //! Implementation of per-point finding logic for NeighborQuery objects.

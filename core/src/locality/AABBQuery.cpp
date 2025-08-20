@@ -13,17 +13,15 @@
 #include "molcpp/locality/NeighborBond.hpp"
 #include "molcpp/locality/NeighborQuery.hpp"
 #include "molcpp/types.hpp"
+#include "xtensor/views/xview.hpp"
 
 namespace molcpp { namespace locality {
 
 AABBQuery::AABBQuery(const Box& box, const XYZ& points)
     : NeighborQuery(box, points)
 {
-    // Allocate memory and create image vectors
-    setupTree(m_n_points);
-
-    // Build the tree
-    buildTree(points);
+    // Build the initial neighborlist
+    build(box, points);
 }
 
 AABBQuery::~AABBQuery() = default;
@@ -46,9 +44,34 @@ AABBQuery::querySingle(const Vec3<float> query_point, unsigned int query_point_i
     throw std::runtime_error("Invalid query mode provided to query function in AABBQuery.");
 }
 
+void AABBQuery::build(const Box& box, const XYZ& points)
+{
+    // Update base class members
+    setBox(box);
+    setPoints(points);
+    
+    // Allocate memory and create image vectors
+    setupTree(_n_points);
+
+    // Build the tree
+    buildTree(points);
+}
+
+void AABBQuery::update(const XYZ& points)
+{
+    // Use base class method to add new points
+    addPoints(points);
+    
+    // Resize _aabbs to match the new number of points
+    setupTree(_n_points);
+    
+    // Rebuild the AABB tree with all points
+    buildTree(_points);
+}
+
 void AABBQuery::setupTree(unsigned int Np)
 {
-    m_aabbs.resize(Np);
+    _aabbs.resize(Np);
 }
 
 void AABBQuery::buildTree(const XYZ& points)
@@ -63,11 +86,11 @@ void AABBQuery::buildTree(const XYZ& points)
         my_pos[0] = points(i, 0);
         my_pos[1] = points(i, 1);
         my_pos[2] = points(i, 2);
-        m_aabbs[i] = AABB(my_pos, i);
+        _aabbs[i] = AABB(my_pos, i);
     }
-
+    
     // Call the tree build routine, one tree per type
-    m_aabb_tree.buildTree(m_aabbs.data(), Np);
+    _aabb_tree.buildTree(_aabbs.data(), Np);
 }
 
 void AABBIterator::updateImageVectors(float r_max, bool _check_r_max)
@@ -150,17 +173,17 @@ NeighborBond AABBQueryBallIterator::next()
         AABBSphere const asphere = AABBSphere(pos_i_image, m_r_max);
 
         // Stackless traversal of the tree
-        while (cur_node_idx < m_aabb_query->m_aabb_tree.getNumNodes())
+        while (cur_node_idx < m_aabb_query->getAABBTree().getNumNodes())
         {
-            if (overlap(m_aabb_query->m_aabb_tree.getNodeAABB(cur_node_idx), asphere))
+            if (overlap(m_aabb_query->getAABBTree().getNodeAABB(cur_node_idx), asphere))
             {
-                if (m_aabb_query->m_aabb_tree.isNodeLeaf(cur_node_idx))
+                if (m_aabb_query->getAABBTree().isNodeLeaf(cur_node_idx))
                 {
-                    while (cur_ref_p < m_aabb_query->m_aabb_tree.getNodeNumParticles(cur_node_idx))
+                    while (cur_ref_p < m_aabb_query->getAABBTree().getNodeNumParticles(cur_node_idx))
                     {
                         // Neighbor j
                         const unsigned int j
-                            = m_aabb_query->m_aabb_tree.getNodeParticleTag(cur_node_idx, cur_ref_p);
+                            = m_aabb_query->getAABBTree().getNodeParticleTag(cur_node_idx, cur_ref_p);
                         // Increment before possible return.
                         cur_ref_p++;
 
@@ -188,7 +211,7 @@ NeighborBond AABBQueryBallIterator::next()
             else
             {
                 // Skip ahead
-                cur_node_idx += m_aabb_query->m_aabb_tree.getNodeSkip(cur_node_idx);
+                cur_node_idx += m_aabb_query->getAABBTree().getNodeSkip(cur_node_idx);
             }
             cur_node_idx++;
             cur_ref_p = 0;

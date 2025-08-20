@@ -266,6 +266,13 @@ inline void AABBTree::init(unsigned int N)
 {
     // clear the nodes
     m_num_nodes = 0;
+    m_node_capacity = 16;  // Initialize with minimum capacity
+
+    // Allocate initial memory for nodes
+    if (m_nodes != nullptr) {
+        delete[] m_nodes;
+    }
+    m_nodes = new AABBNode[m_node_capacity];
 
     // init the root node and mapping to invalid states
     m_root = INVALID_NODE;

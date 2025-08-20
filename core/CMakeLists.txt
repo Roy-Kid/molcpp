@@ -236,3 +236,11 @@ configure_file(
 add_custom_target(uninstall
     COMMAND ${CMAKE_COMMAND} -P ${PROJECT_BINARY_DIR}/uninstall.cmake
 )
+
+# Add SIMD support if requested
+if(MOLCPP_USE_SIMD)
+    target_compile_definitions(molcpp_objects PRIVATE MOLCPP_USE_SIMD=1)
+    message(STATUS "SIMD optimizations enabled")
+else()
+    message(STATUS "SIMD optimizations disabled")
+endif()

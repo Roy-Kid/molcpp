@@ -38,8 +38,14 @@ public:
     XYZ wrap(const Box& box, const XYZ& points) const override;
     XYZ delta(const Box& box, const XYZ& a, const XYZ& b, bool minimumImage = true) const override;
 
+    // Getters for PBC flags
+    bool getPBC(int axis) const;
+
 private:
     bool _px, _py, _pz;  // periodic flags per axis
 };
+
+// Factory function to create boundary based on PBC flags
+std::unique_ptr<Boundary> createBoundary(const Vec3<bool>& pbc);
 
 } // namespace molcpp

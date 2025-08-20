@@ -6,6 +6,11 @@
 
 #include "molcpp/types.hpp"
 
+// Include xsimd for SIMD operations when enabled
+#ifdef MOLCPP_USE_SIMD
+#include "xsimd/xsimd.hpp"
+#endif
+
 /*! \file AABB.h
     \brief Basic AABB routines
 */
@@ -15,6 +20,8 @@
 #else
 #define CACHE_ALIGN __attribute__((aligned(32)))
 #endif
+
+// SIMD implementation is now integrated directly in the functions below
 
 namespace molcpp { namespace locality {
 
@@ -32,7 +39,7 @@ namespace molcpp { namespace locality {
     - overlap()
     - contains()
 */
-struct CACHE_ALIGN AABB
+struct AABB
 {
     Vec3<float> lower; //!< Lower left corner
     Vec3<float> upper; //!< Upper right corner
@@ -110,7 +117,7 @@ struct CACHE_ALIGN AABB
     }
 };
 
-struct CACHE_ALIGN AABBSphere
+struct AABBSphere
 {
     Vec3<float> position; //!< Sphere position
 
@@ -133,7 +140,7 @@ struct CACHE_ALIGN AABBSphere
     }
 
     //! Construct an AABBSphere from the given position and radius with a tag
-    /*! \param _position Position of the sphere
+    /*! \param _position Position of the point
         \param _radius Radius of the sphere
         \param _tag Global particle tag id
     */
@@ -162,8 +169,30 @@ struct CACHE_ALIGN AABBSphere
 */
 inline bool overlap(const AABB& a, const AABB& b)
 {
+#ifdef MOLCPP_USE_SIMD
+    // Use SIMD implementation when available
+    namespace xs = xsimd;
+    
+    using batch_type = xs::batch<float, xs::default_arch>;
+    
+    // Load AABB bounds into SIMD registers
+    batch_type a_lower = batch_type::load_unaligned(a.lower.data());
+    batch_type b_upper = batch_type::load_unaligned(b.upper.data());
+    batch_type a_upper = batch_type::load_unaligned(a.upper.data());
+    batch_type b_lower = batch_type::load_unaligned(b.lower.data());
+    
+    // Check overlap conditions using SIMD operations
+    auto upper_check = b_upper >= a_lower;
+    auto lower_check = b_lower <= a_upper;
+    auto overlap_mask = upper_check & lower_check;
+    
+    // Return true if all dimensions overlap
+    return (overlap_mask.get(0) && overlap_mask.get(1) && overlap_mask.get(2));
+#else
+    // Use regular implementation
     return b.upper[0] >= a.lower[0] && b.lower[0] <= a.upper[0] && b.upper[1] >= a.lower[1]
         && b.lower[1] <= a.upper[1] && b.upper[2] >= a.lower[2] && b.lower[2] <= a.upper[2];
+#endif
 }
 
 //! Check if an AABB and AABBSphere overlap
@@ -173,11 +202,37 @@ inline bool overlap(const AABB& a, const AABB& b)
 */
 inline bool overlap(const AABB& a, const AABBSphere& b)
 {
+#ifdef MOLCPP_USE_SIMD
+    // Use SIMD implementation when available
+    namespace xs = xsimd;
+    
+    using batch_type = xs::batch<float, xs::default_arch>;
+    
+    // Load sphere position and AABB bounds into SIMD registers
+    batch_type sphere_pos = batch_type::load_unaligned(b.position.data());
+    batch_type aabb_lower = batch_type::load_unaligned(a.lower.data());
+    batch_type aabb_upper = batch_type::load_unaligned(a.upper.data());
+    
+    // Calculate closest point on AABB to sphere center using SIMD
+    auto closest = xs::max(aabb_lower, xs::min(aabb_upper, sphere_pos));
+    
+    // Calculate squared distance: (closest - sphere_pos)^2
+    auto diff = closest - sphere_pos;
+    auto diff_sq = diff * diff;
+    
+    // Sum only the first 3 elements (x, y, z) of the squared differences
+    float dr2 = diff_sq.get(0) + diff_sq.get(1) + diff_sq.get(2);
+    
+    // Check if distance is less than radius squared
+    return dr2 < b.radius * b.radius;
+#else
+    // Use regular implementation
     Vec3<float> const dr = Vec3<float>{std::min(std::max(b.position[0], a.lower[0]), a.upper[0]) - b.position[0],
                                        std::min(std::max(b.position[1], a.lower[1]), a.upper[1]) - b.position[1],
                                        std::min(std::max(b.position[2], a.lower[2]), a.upper[2]) - b.position[2]};
     float const dr2 = xt::sum(dr * dr)();
     return dr2 < b.radius * b.radius;
+#endif
 }
 
 //! Check if one AABB contains another
@@ -187,8 +242,32 @@ inline bool overlap(const AABB& a, const AABBSphere& b)
 */
 inline bool contains(const AABB& a, const AABB& b)
 {
+#ifdef MOLCPP_USE_SIMD
+    // Use SIMD implementation when available
+    namespace xs = xsimd;
+    
+    using batch_type = xs::batch<float, xs::default_arch>;
+    
+    // Load bounds into SIMD registers
+    batch_type a_lower = batch_type::load_unaligned(a.lower.data());
+    batch_type a_upper = batch_type::load_unaligned(a.upper.data());
+    batch_type b_lower = batch_type::load_unaligned(b.lower.data());
+    batch_type b_upper = batch_type::load_unaligned(b.upper.data());
+    
+    // Check containment using SIMD operations
+    auto lower_check = b_lower >= a_lower;  // b.lower >= a.lower
+    auto upper_check = b_upper <= a_upper;  // b.upper <= a.upper
+    
+    // Combine conditions: all dimensions must be contained
+    auto containment_mask = lower_check & upper_check;
+    
+    // Return true if all dimensions are contained
+    return (containment_mask.get(0) && containment_mask.get(1) && containment_mask.get(2));
+#else
+    // Use regular implementation
     return (b.lower[0] >= a.lower[0] && b.upper[0] <= a.upper[0] && b.lower[1] >= a.lower[1]
             && b.upper[1] <= a.upper[1] && b.lower[2] >= a.lower[2] && b.upper[2] <= a.upper[2]);
+#endif
 }
 
 //! Merge two AABBs
@@ -198,6 +277,34 @@ inline bool contains(const AABB& a, const AABB& b)
 */
 inline AABB merge(const AABB& a, const AABB& b)
 {
+#ifdef MOLCPP_USE_SIMD
+    // Use SIMD implementation when available
+    namespace xs = xsimd;
+    
+    using batch_type = xs::batch<float, xs::default_arch>;
+    
+    // Load bounds into SIMD registers
+    batch_type a_lower = batch_type::load_unaligned(a.lower.data());
+    batch_type b_lower = batch_type::load_unaligned(b.lower.data());
+    batch_type a_upper = batch_type::load_unaligned(a.upper.data());
+    batch_type b_upper = batch_type::load_unaligned(b.upper.data());
+    
+    // Calculate merged bounds using SIMD operations
+    batch_type merged_lower = xs::min(a_lower, b_lower);
+    batch_type merged_upper = xs::max(a_upper, b_upper);
+    
+    // Create new AABB with merged bounds
+    AABB new_aabb;
+    new_aabb.lower[0] = merged_lower.get(0);
+    new_aabb.lower[1] = merged_lower.get(1);
+    new_aabb.lower[2] = merged_lower.get(2);
+    new_aabb.upper[0] = merged_upper.get(0);
+    new_aabb.upper[1] = merged_upper.get(1);
+    new_aabb.upper[2] = merged_upper.get(2);
+    
+    return new_aabb;
+#else
+    // Use regular implementation
     AABB new_aabb;
     new_aabb.lower[0] = std::min(a.lower[0], b.lower[0]);
     new_aabb.lower[1] = std::min(a.lower[1], b.lower[1]);
@@ -207,6 +314,7 @@ inline AABB merge(const AABB& a, const AABB& b)
     new_aabb.upper[2] = std::max(a.upper[2], b.upper[2]);
 
     return new_aabb;
+#endif
 }
 
 }; }; // end namespace molcpp::locality

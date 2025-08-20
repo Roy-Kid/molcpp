@@ -19,9 +19,10 @@ include(deps)
 
 # Build options
 option(MOLCPP_BUILD_CORE "Build molcpp core library" ON)
-option(MOLCPP_BUILD_PYTHON "Build molcpp Python bindings" OFF)
-option(MOLCPP_BUILD_TESTS "Build molcpp tests" OFF)
-option(MOLCPP_BUILD_BENCHMARKS "Build molcpp benchmarks" OFF)
+option(MOLCPP_BUILD_PYTHON "Build Python bindings" OFF)
+option(MOLCPP_BUILD_TESTS "Build tests" ON)
+option(MOLCPP_BUILD_BENCHMARKS "Build benchmarks" OFF)
+option(MOLCPP_USE_SIMD "Enable SIMD optimizations using xsimd" ON)
 
 # Set default build type
 if(NOT CMAKE_BUILD_TYPE)

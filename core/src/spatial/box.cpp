@@ -11,17 +11,67 @@ using XYZ = xt::xarray<float>;
 
 Box::Box(const Mat3<float>& matrix, const Vec3<float>& origin, const Vec3<bool>& pbc)
     : _pbc(pbc), _region(matrix, origin) {
-    
-    // Choose boundary based on PBC flags
-    if (!_pbc(0) && !_pbc(1) && !_pbc(2)) {
-        _boundary = std::make_unique<OpenBoundary>();
-    } else {
-        _boundary = std::make_unique<PeriodicBoundary>(_pbc(0), _pbc(1), _pbc(2));
+    _boundary = createBoundary(pbc);
+}
+
+// Copy constructor
+Box::Box(const Box& other)
+    : _pbc(other._pbc), _region(other._region)
+{
+    if (other._boundary) {
+        if (dynamic_cast<OpenBoundary*>(other._boundary.get())) {
+            _boundary = std::make_unique<OpenBoundary>();
+        } else if (dynamic_cast<PeriodicBoundary*>(other._boundary.get())) {
+            auto* pb = dynamic_cast<PeriodicBoundary*>(other._boundary.get());
+            _boundary = std::make_unique<PeriodicBoundary>(pb->getPBC(0), pb->getPBC(1), pb->getPBC(2));
+        }
     }
 }
 
+// Copy assignment operator
+Box& Box::operator=(const Box& other)
+{
+    if (this != &other) {
+        _pbc = other._pbc;
+        _region = other._region;
+        
+        if (other._boundary) {
+            if (dynamic_cast<OpenBoundary*>(other._boundary.get())) {
+                _boundary = std::make_unique<OpenBoundary>();
+            } else if (dynamic_cast<PeriodicBoundary*>(other._boundary.get())) {
+                auto* pb = dynamic_cast<PeriodicBoundary*>(other._boundary.get());
+                _boundary = std::make_unique<PeriodicBoundary>(pb->getPBC(0), pb->getPBC(1), pb->getPBC(2));
+            }
+        }
+    }
+    return *this;
+}
+
+// Move constructor
+Box::Box(Box&& other) noexcept
+    : _pbc(std::move(other._pbc)), _region(std::move(other._region)), _boundary(std::move(other._boundary))
+{
+}
+
+// Move assignment operator
+Box& Box::operator=(Box&& other) noexcept
+{
+    if (this != &other) {
+        _pbc = std::move(other._pbc);
+        _region = std::move(other._region);
+        _boundary = std::move(other._boundary);
+    }
+    return *this;
+}
+
+// Destructor
+Box::~Box()
+{
+}
+
 Box Box::cube(float length, const Vec3<float>& origin, const Vec3<bool>& pbc) {
-    Mat3<float> matrix = xt::zeros<float>({3, 3});
+    std::vector<size_t> shape = {3, 3};
+    Mat3<float> matrix = xt::zeros<float>(shape);
     matrix(0, 0) = length;
     matrix(1, 1) = length;
     matrix(2, 2) = length;
@@ -29,7 +79,8 @@ Box Box::cube(float length, const Vec3<float>& origin, const Vec3<bool>& pbc) {
 }
 
 Box Box::orthorhombic(const Vec3<float>& lengths, const Vec3<float>& origin, const Vec3<bool>& pbc) {
-    Mat3<float> matrix = xt::zeros<float>({3, 3});
+    std::vector<size_t> shape = {3, 3};
+    Mat3<float> matrix = xt::zeros<float>(shape);
     matrix(0, 0) = lengths(0);
     matrix(1, 1) = lengths(1);
     matrix(2, 2) = lengths(2);

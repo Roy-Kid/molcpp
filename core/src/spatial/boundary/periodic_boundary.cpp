@@ -72,4 +72,22 @@ XYZ PeriodicBoundary::delta(const Box& box, const XYZ& a, const XYZ& b, bool min
     return box.toCart(frac_delta);
 }
 
+bool PeriodicBoundary::getPBC(int axis) const {
+    switch (axis) {
+        case 0: return _px;
+        case 1: return _py;
+        case 2: return _pz;
+        default: return false;
+    }
+}
+
+// Factory function implementation
+std::unique_ptr<Boundary> createBoundary(const Vec3<bool>& pbc) {
+    if (!pbc(0) && !pbc(1) && !pbc(2)) {
+        return std::make_unique<OpenBoundary>();
+    } else {
+        return std::make_unique<PeriodicBoundary>(pbc(0), pbc(1), pbc(2));
+    }
+}
+
 } // namespace molcpp

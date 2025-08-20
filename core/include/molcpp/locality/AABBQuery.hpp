@@ -41,7 +41,7 @@ public:
     //! Constructs the compute
     AABBQuery();
 
-    //! New-style constructor.
+    //! Constructor that builds initial neighborlist by calling build method
     AABBQuery(const Box& box, const XYZ& points);
 
     //! Destructor
@@ -55,7 +55,14 @@ public:
     std::shared_ptr<NeighborQueryPerPointIterator>
     querySingle(const Vec3<float> query_point, unsigned int query_point_idx, QueryArgs args) const override;
 
-    AABBTree m_aabb_tree; //!< AABB tree of points
+    //! Build Neighborlist
+    void build(const Box& box, const XYZ& points);
+
+    //! Add points to current Neighborlist
+    void update(const XYZ& points);
+
+    //! Get the AABB tree for iterator access
+    const AABBTree& getAABBTree() const { return _aabb_tree; }
 
 protected:
     //! Validate the combination of specified arguments.
@@ -86,11 +93,11 @@ protected:
                 // desired number of neighbors.
 
                 float const r_guess = std::cbrtf(
-                    (float(3.0) * static_cast<float>(args.num_neighbors) * m_box.getVolume())
+                    (float(3.0) * static_cast<float>(args.num_neighbors) * _box.getVolume())
                     / (float(4.0) * static_cast<float>(M_PI) * static_cast<float>(getNPoints())));
 
                 // The upper bound is set by the minimum nearest plane distances.
-                Vec3<float> const nearest_plane_distance = m_box.getNearestPlaneDistance();
+                Vec3<float> const nearest_plane_distance = _box.getNearestPlaneDistance();
                 float min_plane_distance = std::min({nearest_plane_distance[0], nearest_plane_distance[1], nearest_plane_distance[2]});
 
                 args.r_guess = std::min(r_guess, min_plane_distance / float(2.0));
@@ -104,6 +111,13 @@ protected:
     }
 
 private:
+
+    //! AABB tree for efficient neighbor finding
+    AABBTree _aabb_tree;
+    
+    //! Vector of AABBs for each point
+    std::vector<AABB> _aabbs;
+
     //! Driver for tree configuration
     void setupTree(unsigned int N);
 
@@ -112,8 +126,6 @@ private:
 
     //! Driver to build AABB trees
     void buildTree(const XYZ& points);
-
-    std::vector<AABB> m_aabbs; //!< Flat array of AABBs of all types
 };
 
 //! Parent class of AABB iterators that knows how to traverse general AABB tree structures.
