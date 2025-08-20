@@ -1,18 +1,22 @@
 """
-pytest configuration and fixtures for molcpp tests
+Pytest configuration for molcpp tests.
 """
 
 import sys
 import os
 import pytest
 
-# Add the built module to Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'build'))
+# Add the molcpp Python module to the path
+sys.path.insert(0, '/workspaces/molcrafts-1/molcpp/python/src/molcpp')
 
-try:
-    import molcpp
-except ImportError as e:
-    pytest.skip(f"molcpp module not available: {e}", allow_module_level=True)
+# Import the bindings module
+import _bindings
+
+# Make bindings available to all tests
+@pytest.fixture(scope="session")
+def bindings():
+    """Provide the molcpp bindings module to all tests."""
+    return _bindings
 
 
 @pytest.fixture

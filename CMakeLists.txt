@@ -33,6 +33,10 @@ endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# add_definitions(-DXTENSOR_ENABLE_XSIMD)
+# add_definitions(-DXTENSOR_USE_XSIMD)\
+# set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -mavx2 -ffast-math")
+
 message(STATUS "")
 message(STATUS "molcpp v${MOLCPP_FULL_VERSION}")
 message(STATUS "==========================================")

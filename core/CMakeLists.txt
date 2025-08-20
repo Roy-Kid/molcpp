@@ -78,6 +78,8 @@ set(molcpp_objects_sources
     src/spatial/region/complement_region.cpp
     src/locality/NeighborList.cpp
     src/locality/AABBQuery.cpp
+    src/ecs/entity.cpp
+    src/ecs/system.cpp
 )
 
 add_library(molcpp_objects OBJECT ${molcpp_objects_sources})

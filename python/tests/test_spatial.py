@@ -1,166 +1,176 @@
-"""Test spatial module functionality"""
+#!/usr/bin/env python3
+"""
+Pytest tests for molcpp Spatial module.
+"""
+
+import sys
+import os
+sys.path.insert(0, '/workspaces/molcrafts-1/molcpp/python/src/molcpp')
 
 import numpy as np
-import molcpp
-from molcpp.spatial import Box, BoxStyle
+import pytest
+import _bindings
 
 
-class TestBoxBasics:
-    """Test basic Box functionality"""
+class TestSpatialModule:
+    """Test Spatial module functionality."""
     
-    def test_box_creation(self):
-        """Test creating boxes with different methods"""
-        # Test free box
-        box = Box()
-        assert box.get_style() == BoxStyle.FREE
+    def test_box_cube_creation(self):
+        """Test Box.cube factory method."""
+        box = _bindings.spatial.Box.cube(
+            10.0,
+            np.array([0.0, 0.0, 0.0], dtype=np.float32),
+            np.array([True, True, True], dtype=bool)
+        )
         
-        # Test from lengths list
-        box = Box([10.0, 10.0, 10.0])
-        assert box.get_style() == BoxStyle.ORTHOGONAL
-        lengths = box.get_lengths()
-        np.testing.assert_array_almost_equal(lengths, [10.0, 10.0, 10.0])
+        assert abs(box.getVolume() - 1000.0) < 1e-6
+        assert box.getVolume() == 1000.0
+    
+    def test_box_orthorhombic_creation(self):
+        """Test Box.orthorhombic factory method."""
+        lengths = np.array([5.0, 6.0, 7.0], dtype=np.float32)
+        box = _bindings.spatial.Box.orthorhombic(
+            lengths,
+            np.array([0.0, 0.0, 0.0], dtype=np.float32),
+            np.array([True, True, True], dtype=bool)
+        )
         
+        assert abs(box.getVolume() - 210.0) < 1e-6
+        assert box.getVolume() == 210.0
+    
     def test_box_properties(self):
-        """Test basic box properties"""
-        box = Box([5.0, 6.0, 7.0])
+        """Test Box properties."""
+        box = _bindings.spatial.Box.cube(
+            10.0,
+            np.array([0.0, 0.0, 0.0], dtype=np.float32),
+            np.array([True, True, True], dtype=bool)
+        )
         
-        # Test lengths
-        lengths = box.get_lengths()
-        np.testing.assert_array_almost_equal(lengths, [5.0, 6.0, 7.0])
+        # Test origin
+        origin = box.origin()
+        assert origin.shape == (3,)
+        assert np.allclose(origin, np.array([0.0, 0.0, 0.0]))
         
-        # Test volume
-        volume = box.get_volume()
-        assert abs(volume - 5.0 * 6.0 * 7.0) < 1e-10
-        
-    def test_box_matrix(self):
-        """Test box matrix operations"""
-        box = Box([10.0, 10.0, 10.0])
+        # Test PBC
+        pbc = box.pbc()
+        assert pbc.shape == (3,)
+        assert np.all(pbc == True)
         
         # Test matrix
-        matrix = box.get_matrix()
-        expected = np.array([[10.0, 0.0, 0.0],
-                           [0.0, 10.0, 0.0],
-                           [0.0, 0.0, 10.0]])
-        np.testing.assert_array_almost_equal(matrix, expected)
-        
-        # Test inverse matrix
-        inv_matrix = box.get_inv()
-        expected_inv = np.array([[0.1, 0.0, 0.0],
-                               [0.0, 0.1, 0.0],
-                               [0.0, 0.0, 0.1]])
-        np.testing.assert_array_almost_equal(inv_matrix, expected_inv)
-
-
-class TestBoxWrapping:
-    """Test coordinate wrapping functionality"""
+        matrix = box.matrix()
+        assert matrix.shape == (3, 3)
     
-    def test_wrap_orthogonal(self):
-        """Test wrapping in orthogonal box"""
-        box = Box([10.0, 10.0, 10.0])
-        
-        # Test single particle
-        coords = np.array([[15.0, -5.0, 2.0]])
-        wrapped = box.wrap(coords)
-        expected = np.array([[5.0, 5.0, 2.0]])
-        np.testing.assert_array_almost_equal(wrapped, expected)
-        
-        # Test multiple particles
-        coords = np.array([[15.0, -5.0, 2.0],
-                          [3.0, 12.0, -1.0]])
-        wrapped = box.wrap(coords)
-        expected = np.array([[5.0, 5.0, 2.0],
-                           [3.0, 2.0, 9.0]])
-        np.testing.assert_array_almost_equal(wrapped, expected)
-        
-    def test_minimum_image(self):
-        """Test minimum image calculations"""
-        box = Box([10.0, 10.0, 10.0])
-        
-        # Test minimum image distance
-        r1 = np.array([[1.0, 1.0, 1.0]])
-        r2 = np.array([[9.0, 9.0, 9.0]])
-        dr = box.minimum_image(r1, r2)
-        
-        # Should wrap around to shorter distance
-        expected = np.array([[-2.0, -2.0, -2.0]])
-        np.testing.assert_array_almost_equal(dr, expected, decimal=5)
-
-
-class TestBoxFactories:
-    """Test static factory methods"""
+    def test_box_volume_calculations(self):
+        """Test Box volume calculations."""
+        # Test different cube sizes
+        sizes = [1.0, 2.0, 5.0, 10.0]
+        for size in sizes:
+            box = _bindings.spatial.Box.cube(
+                size,
+                np.array([0.0, 0.0, 0.0], dtype=np.float32),
+                np.array([True, True, True], dtype=bool)
+            )
+            expected_volume = size ** 3
+            assert abs(box.getVolume() - expected_volume) < 1e-6
     
-    def test_from_lengths_angles(self):
-        """Test creating box from lengths and angles"""
-        lengths = np.array([5.0, 6.0, 7.0])
-        angles = np.array([90.0, 90.0, 90.0])  # orthogonal
+    def test_box_origin_variations(self):
+        """Test Box with different origins."""
+        origins = [
+            np.array([0.0, 0.0, 0.0], dtype=np.float32),
+            np.array([-5.0, -5.0, -5.0], dtype=np.float32),
+            np.array([10.0, 20.0, 30.0], dtype=np.float32)
+        ]
         
-        box = Box.from_lengths_angles(lengths, angles)
-        
-        # Should be orthogonal
-        assert box.get_style() == BoxStyle.ORTHOGONAL
-        
-        box_lengths = box.get_lengths()
-        np.testing.assert_array_almost_equal(box_lengths, lengths)
-
-
-class TestRegionInterface:
-    """Test Box as Region"""
+        for origin in origins:
+            box = _bindings.spatial.Box.cube(
+                10.0,
+                origin,
+                np.array([True, True, True], dtype=bool)
+            )
+            
+            retrieved_origin = box.origin()
+            assert np.allclose(retrieved_origin, origin)
+            assert box.getVolume() == 1000.0  # Volume should be independent of origin
     
-    def test_isin_orthogonal(self):
-        """Test point-in-box testing for orthogonal box"""
-        box = Box([10.0, 10.0, 10.0])
+    def test_box_pbc_variations(self):
+        """Test Box with different periodic boundary conditions."""
+        pbc_configs = [
+            np.array([True, True, True], dtype=bool),   # All periodic
+            np.array([False, False, False], dtype=bool), # All non-periodic
+            np.array([True, False, True], dtype=bool),   # Mixed
+        ]
         
-        # Test points inside and outside
-        coords = np.array([[5.0, 5.0, 5.0],   # inside
-                          [15.0, 5.0, 5.0],   # outside x
-                          [-1.0, 5.0, 5.0],   # outside x (negative)
-                          [0.0, 0.0, 0.0],    # on boundary
-                          [10.0, 10.0, 10.0]])  # on boundary
-        
-        inside = box.isin(coords)
-        
-        # Check results - depending on implementation, boundary points may or may not be included
-        assert inside[0] == True   # clearly inside
-        assert inside[1] == False  # clearly outside
-        assert inside[2] == False  # clearly outside
-        
-    def test_boundary_method(self):
-        """Test boundary method from Region interface"""
-        box = Box([10.0, 12.0, 8.0])
-        bounds = box.boundary()
-        
-        # Should return [xmin, xmax, ymin, ymax, zmin, zmax]
-        expected = [0.0, 10.0, 0.0, 12.0, 0.0, 8.0]
-        assert len(bounds) == 6
-        for i in range(6):
-            assert abs(bounds[i] - expected[i]) < 1e-10
-
-
-class TestBoundaryInterface:
-    """Test Box as Boundary"""
+        for pbc in pbc_configs:
+            box = _bindings.spatial.Box.cube(
+                10.0,
+                np.array([0.0, 0.0, 0.0], dtype=np.float32),
+                pbc
+            )
+            
+            retrieved_pbc = box.pbc()
+            assert np.all(retrieved_pbc == pbc)
+            assert box.getVolume() == 1000.0  # Volume should be independent of PBC
     
-    def test_boundary_methods(self):
-        """Test boundary-specific methods"""
-        box = Box([10.0, 10.0, 10.0])
+    def test_box_matrix_properties(self):
+        """Test Box matrix properties."""
+        box = _bindings.spatial.Box.cube(
+            10.0,
+            np.array([0.0, 0.0, 0.0], dtype=np.float32),
+            np.array([True, True, True], dtype=bool)
+        )
         
-        # Test get_bounds
-        bounds = box.get_bounds()
-        assert len(bounds) == 6
+        matrix = box.matrix()
+        assert matrix.shape == (3, 3)
         
-        # Test periodicity
-        periodic = box.is_periodic()
-        assert len(periodic) == 3
-        # For orthogonal box, should be periodic in all directions
-        assert all(periodic)
-
-
-def test_box_styles():
-    """Test BoxStyle enum"""
-    # Test enum values exist
-    assert hasattr(BoxStyle, 'FREE')
-    assert hasattr(BoxStyle, 'ORTHOGONAL') 
-    assert hasattr(BoxStyle, 'TRICLINIC')
+        # For a cube, the matrix should be diagonal with the size
+        expected_matrix = np.array([
+            [10.0, 0.0, 0.0],
+            [0.0, 10.0, 0.0],
+            [0.0, 0.0, 10.0]
+        ], dtype=np.float32)
+        
+        assert np.allclose(matrix, expected_matrix)
     
-    # Test they are different
-    assert BoxStyle.FREE != BoxStyle.ORTHOGONAL
-    assert BoxStyle.ORTHOGONAL != BoxStyle.TRICLINIC
+    def test_box_edge_cases(self):
+        """Test Box edge cases."""
+        # Test very small box
+        small_box = _bindings.spatial.Box.cube(
+            0.001,
+            np.array([0.0, 0.0, 0.0], dtype=np.float32),
+            np.array([True, True, True], dtype=bool)
+        )
+        assert abs(small_box.getVolume() - 1e-9) < 1e-12
+        
+        # Test very large box
+        large_box = _bindings.spatial.Box.cube(
+            1000.0,
+            np.array([0.0, 0.0, 0.0], dtype=np.float32),
+            np.array([True, True, True], dtype=bool)
+        )
+        assert abs(large_box.getVolume() - 1e9) < 1e6
+    
+    def test_box_orthorhombic_variations(self):
+        """Test Box.orthorhombic with different dimensions."""
+        dimensions = [
+            (1.0, 1.0, 1.0),      # Cube
+            (2.0, 3.0, 4.0),      # Different lengths
+            (0.5, 1.0, 2.0),      # Small to large
+            (10.0, 20.0, 30.0),   # Large dimensions
+        ]
+        
+        for lx, ly, lz in dimensions:
+            lengths = np.array([lx, ly, lz], dtype=np.float32)
+            box = _bindings.spatial.Box.orthorhombic(
+                lengths,
+                np.array([0.0, 0.0, 0.0], dtype=np.float32),
+                np.array([True, True, True], dtype=bool)
+            )
+            
+            expected_volume = lx * ly * lz
+            assert abs(box.getVolume() - expected_volume) < 1e-6
+            
+            # Check matrix is diagonal with correct lengths
+            matrix = box.matrix()
+            assert abs(matrix[0, 0] - lx) < 1e-6
+            assert abs(matrix[1, 1] - ly) < 1e-6
+            assert abs(matrix[2, 2] - lz) < 1e-6

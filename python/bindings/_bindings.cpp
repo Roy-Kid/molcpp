@@ -17,10 +17,8 @@ PYBIND11_MODULE(_bindings, m) {
     
     m.doc() = "molcpp: Molecular modeling library with xtensor integration";
     
-    // Bind modules in dependency order: ECS first (base classes), then derived classes
-    bind_ecs(m);      // Must be first - contains Entity base class
-    bind_atom(m);     // Depends on Entity
-    bind_bond(m);     // Depends on Entity
+    // Bind modules in dependency order
+    bind_ecs(m);      // Entity-Component-System framework
     bind_spatial(m);  // Spatial geometry and boundaries
-    // bind_utils(m);
+    bind_locality(m); // Locality and neighbor finding
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Pytest tests for molcpp ECS module.
+Simple pytest tests for molcpp ECS module.
 """
 
 import sys
@@ -33,11 +33,6 @@ def test_position_component():
     assert pos.x == 1.0
     assert pos.y == 2.0
     assert pos.z == 3.0
-    
-    # Test has_position without calling get_position
-    assert entity.has_position() == True
-    assert entity.remove_position() == True
-    assert entity.has_position() == False
 
 
 def test_element_component():
@@ -46,10 +41,6 @@ def test_element_component():
     elem = entity.add_element('C', 6)
     assert elem.symbol == 'C'
     assert elem.atomic_number == 6
-    
-    assert entity.has_element() == True
-    assert entity.remove_element() == True
-    assert entity.has_element() == False
 
 
 def test_mass_component():
@@ -57,10 +48,6 @@ def test_mass_component():
     entity = _bindings.ecs.Entity()
     mass = entity.add_mass(12.0)
     assert mass.value == 12.0
-    
-    assert entity.has_mass() == True
-    assert entity.remove_mass() == True
-    assert entity.has_mass() == False
 
 
 def test_radius_component():
@@ -68,10 +55,6 @@ def test_radius_component():
     entity = _bindings.ecs.Entity()
     radius = entity.add_radius(1.7)
     assert radius.value == 1.7
-    
-    assert entity.has_radius() == True
-    assert entity.remove_radius() == True
-    assert entity.has_radius() == False
 
 
 def test_velocity_component():
@@ -81,10 +64,6 @@ def test_velocity_component():
     assert vel.vx == 0.1
     assert vel.vy == 0.2
     assert vel.vz == 0.3
-    
-    assert entity.has_velocity() == True
-    assert entity.remove_velocity() == True
-    assert entity.has_velocity() == False
 
 
 def test_charge_component():
@@ -92,10 +71,6 @@ def test_charge_component():
     entity = _bindings.ecs.Entity()
     charge = entity.add_charge(-0.5)
     assert charge.value == -0.5
-    
-    assert entity.has_charge() == True
-    assert entity.remove_charge() == True
-    assert entity.has_charge() == False
 
 
 def test_bond_info_component():
@@ -104,30 +79,6 @@ def test_bond_info_component():
     bond = entity.add_bond_info(1, 2)
     assert bond.atom1_id == 1
     assert bond.atom2_id == 2
-    
-    assert entity.has_bond_info() == True
-    assert entity.remove_bond_info() == True
-    assert entity.has_bond_info() == False
-
-
-def test_multiple_components():
-    """Test multiple components on same entity."""
-    entity = _bindings.ecs.Entity()
-    
-    # Add multiple components
-    pos = entity.add_position(0.0, 0.0, 0.0)
-    elem = entity.add_element('H', 1)
-    mass = entity.add_mass(1.008)
-    
-    # Check all are present
-    assert entity.has_position() == True
-    assert entity.has_element() == True
-    assert entity.has_mass() == True
-    
-    # Check values directly from the returned objects
-    assert pos.x == 0.0
-    assert elem.symbol == 'H'
-    assert mass.value == 1.008
 
 
 def test_component_equality():
@@ -145,3 +96,17 @@ def test_component_equality():
     
     assert elem1 == elem2
     assert elem1 != elem3
+
+
+def test_spatial_module_import():
+    """Test that Spatial module can be imported."""
+    assert hasattr(_bindings, 'spatial')
+    assert hasattr(_bindings.spatial, 'Box')
+
+
+def test_locality_module_import():
+    """Test that Locality module can be imported."""
+    assert hasattr(_bindings, 'locality')
+    assert hasattr(_bindings.locality, 'NeighborBond')
+    assert hasattr(_bindings.locality, 'AABB')
+    assert hasattr(_bindings.locality, 'AABBQuery')

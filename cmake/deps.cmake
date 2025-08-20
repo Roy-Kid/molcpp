@@ -131,16 +131,15 @@ function(find_or_fetch_xtensor_python)
         return()
     endif()
 
-    # Use local xtensor-python from workspace
-    message(STATUS "Using local xtensor-python from /workspaces/xtensor-python")
-    
-    # Add the local xtensor-python as subdirectory
-    if(EXISTS "/workspaces/xtensor-python/CMakeLists.txt")
-        add_subdirectory(/workspaces/xtensor-python ${CMAKE_CURRENT_BINARY_DIR}/xtensor-python-build)
-        message(STATUS "Added local xtensor-python subdirectory")
-    else()
-        message(FATAL_ERROR "Local xtensor-python not found at /workspaces/xtensor-python")
-    endif()
+    # Download xtensor-python if not found
+    message(STATUS "xtensor-python not found, downloading...")
+    FetchContent_Declare(
+        xtensor-python
+        GIT_REPOSITORY https://github.com/Roy-Kid/xtensor-python
+        GIT_TAG        master
+    )
+    FetchContent_MakeAvailable(xtensor-python)
+    message(STATUS "xtensor-python downloaded and configured")
 endfunction()
 
 function(setup_python_xtensor_target target_name)

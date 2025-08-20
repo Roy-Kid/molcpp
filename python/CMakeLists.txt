@@ -17,10 +17,9 @@ message(STATUS "Found xtensor-python: ${xtensor-python_VERSION}")
 # Create Python extension module
 pybind11_add_module(_bindings 
     bindings/_bindings.cpp
-    bindings/atom.cpp
-    bindings/bond.cpp
     bindings/ecs.cpp
     bindings/spatial.cpp
+    bindings/locality.cpp
 )
 
 # Set module properties
