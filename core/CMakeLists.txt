@@ -19,6 +19,7 @@ option(BUILD_SHARED_LIBS "Build shared libraries instead of static ones" OFF)
 option(MOLCPP_BUILD_TESTS "Build unit tests." OFF)
 option(MOLCPP_BUILD_BENCHMARKS "Build performance benchmarks." OFF)
 option(MOLCPP_BUILD_DOCUMENTATION "Build the documentation." OFF)
+option(MOLCPP_USE_DOUBLE "Use double precision for floating point calculations (default: float)" OFF)
 option(MOLCPP_USE_WARNINGS "Compile the code with warnings (default in debug mode)" OFF)
 option(MOLCPP_USE_CLANG_TIDY "Compile the code with clang-tidy warnings" OFF)
 
@@ -80,6 +81,7 @@ set(molcpp_objects_sources
     src/locality/AABBQuery.cpp
     src/ecs/entity.cpp
     src/ecs/system.cpp
+    src/pack/optimizer.cpp
 )
 
 add_library(molcpp_objects OBJECT ${molcpp_objects_sources})
@@ -245,4 +247,13 @@ if(MOLCPP_USE_SIMD)
     message(STATUS "SIMD optimizations enabled")
 else()
     message(STATUS "SIMD optimizations disabled")
+endif()
+
+# Configure floating point precision
+if(MOLCPP_USE_DOUBLE)
+    target_compile_definitions(molcpp_objects PRIVATE MOLCPP_USE_DOUBLE=1)
+    message(STATUS "Using double precision for floating point calculations")
+else()
+    target_compile_definitions(molcpp_objects PRIVATE MOLCPP_USE_DOUBLE=0)
+    message(STATUS "Using single precision (float) for floating point calculations")
 endif()

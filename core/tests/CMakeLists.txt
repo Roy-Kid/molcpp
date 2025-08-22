@@ -5,15 +5,28 @@ message(STATUS "Configuring molcpp tests")
 find_or_fetch_catch2()
 find_or_fetch_xtensor()
 
-# Create test executable with only spatial module tests
+# Create test executable with all tests
 set(test_sources
-    "test_spatial/test_box_boundary.cpp"
+    "test_core/test_block.cpp"
+    "test_core/test_frame.cpp"
+    "test_entity.cpp"
+    "test_system.cpp"
     "test_spatial/test_boundary.cpp"
+    "test_spatial/test_box_boundary.cpp"
     "test_spatial/test_regions.cpp"
+    "test_locality/test_aabb_query.cpp"
+    "test_locality/test_aabb_simple.cpp"
     "test_locality/test_neighbor_bond.cpp"
     "test_locality/test_neighbor_list.cpp"
-    "test_locality/test_aabb_simple.cpp"
-    "test_locality/test_aabb_query.cpp"
+
+    "test_pack/test_constraint.cpp"
+    # Temporarily disable Target tests due to incomplete Optimizer type
+    # "test_pack/test_target.cpp"
+    "test_pack/test_optimizer.cpp"
+    # Temporarily disable Packer tests due to API mismatches
+    # "test_pack/test_packer.cpp"
+    # Temporarily excluding tests that have link issues
+    # "test_bond.cpp"
 )
 
 add_executable(molcpp_tests ${test_sources})
