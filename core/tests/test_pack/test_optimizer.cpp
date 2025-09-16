@@ -10,7 +10,7 @@ using namespace Catch;
 TEST_CASE("Optimizer: Basic Structures", "[pack][optimizer]") {
     
     SECTION("OptimizationParams default values") {
-        OptimizationParams<> params;
+        OptimizationParams<float> params;
         
         REQUIRE(params.max_iterations == 1000);
         REQUIRE(params.tolerance == Approx(1e-6));
@@ -21,7 +21,7 @@ TEST_CASE("Optimizer: Basic Structures", "[pack][optimizer]") {
     }
     
     SECTION("OptimizationParams custom values") {
-        OptimizationParams<> params;
+        OptimizationParams<float> params;
         params.max_iterations = 500;
         params.tolerance = 1e-8;
         params.learning_rate = 0.1;
@@ -36,15 +36,15 @@ TEST_CASE("Optimizer: Basic Structures", "[pack][optimizer]") {
     }
     
     SECTION("OptimizationResult structure") {
-        OptimizationResult<> result;
+        OptimizationResult<float> result;
         
         // Test that we can set and access all fields
-        result.positions = xt::zeros<Real>({5, 3});
+        result.positions = xt::zeros<float>({5, 3});
         result.final_penalty = 1.5;
         result.iterations = 100;
         result.converged = true;
         result.status = "Test status";
-        result.trajectory = xt::ones<Real>({5, 3});
+        result.trajectory = xt::ones<float>({5, 3});
         
         REQUIRE(result.positions.shape(0) == 5);
         REQUIRE(result.positions.shape(1) == 3);
@@ -59,29 +59,29 @@ TEST_CASE("Optimizer: Basic Structures", "[pack][optimizer]") {
 TEST_CASE("Optimizer: GradientDescentOptimizer", "[pack][optimizer]") {
     
     SECTION("GradientDescentOptimizer creation and basic properties") {
-        GradientDescentOptimizer<> optimizer;
+        GradientDescentOptimizer<float> optimizer;
         
         REQUIRE(optimizer.name() == "GradientDescent");
         REQUIRE(optimizer.description() == "Basic gradient descent optimizer");
     }
     
     SECTION("GradientDescentOptimizer placeholder optimization") {
-        GradientDescentOptimizer<> optimizer;
+        GradientDescentOptimizer<float> optimizer;
         
         // Create simple initial positions
-        CoordArray<> initial_positions = xt::ones<Real>({3, 3});
+        CoordArrayf initial_positions = xt::ones<float>({3, 3});
         
         // Create simple penalty function (constant penalty)
-        PenaltyFunction<> penalty_fn = [](const CoordArray<>& positions) -> Real {
+        PenaltyFunction<float> penalty_fn = [](const CoordArrayf& positions) -> float {
             return 1.0;  // Constant penalty
         };
         
         // Create simple gradient function (zero gradient)
-        GradientFunction<> gradient_fn = [](const CoordArray<>& positions) -> CoordArray<> {
-            return xt::zeros<Real>(positions.shape());
+        GradientFunction<float> gradient_fn = [](const CoordArrayf& positions) -> CoordArrayf {
+            return xt::zeros<float>(positions.shape());
         };
         
-        OptimizationParams<> params;
+        OptimizationParams<float> params;
         params.verbose = false;  // Don't print during tests
         
         auto result = optimizer.optimize(initial_positions, penalty_fn, gradient_fn, params);
@@ -96,19 +96,19 @@ TEST_CASE("Optimizer: GradientDescentOptimizer", "[pack][optimizer]") {
     }
     
     SECTION("GradientDescentOptimizer with trajectory saving") {
-        GradientDescentOptimizer<> optimizer;
+        GradientDescentOptimizer<float> optimizer;
         
-        CoordArray<> initial_positions = xt::ones<Real>({2, 3});
+        CoordArrayf initial_positions = xt::ones<float>({2, 3});
         
-        PenaltyFunction<> penalty_fn = [](const CoordArray<>& positions) -> Real {
+        PenaltyFunction<float> penalty_fn = [](const CoordArrayf& positions) -> float {
             return 0.5;
         };
         
-        GradientFunction<> gradient_fn = [](const CoordArray<>& positions) -> CoordArray<> {
-            return xt::zeros<Real>(positions.shape());
+        GradientFunction<float> gradient_fn = [](const CoordArrayf& positions) -> CoordArrayf {
+            return xt::zeros<float>(positions.shape());
         };
         
-        OptimizationParams<> params;
+        OptimizationParams<float> params;
         params.save_trajectory = true;
         params.verbose = false;
         
@@ -123,26 +123,26 @@ TEST_CASE("Optimizer: GradientDescentOptimizer", "[pack][optimizer]") {
 TEST_CASE("Optimizer: LBFGSOptimizer", "[pack][optimizer]") {
     
     SECTION("LBFGSOptimizer creation and basic properties") {
-        LBFGSOptimizer<> optimizer;
+        LBFGSOptimizer<float> optimizer;
         
         REQUIRE(optimizer.name() == "L-BFGS");
         REQUIRE(optimizer.description() == "Limited-memory BFGS optimizer");
     }
     
     SECTION("LBFGSOptimizer placeholder optimization") {
-        LBFGSOptimizer<> optimizer;
+        LBFGSOptimizer<float> optimizer;
         
-        CoordArray<> initial_positions = xt::zeros<Real>({4, 3});
+        CoordArrayf initial_positions = xt::zeros<float>({4, 3});
         
-        PenaltyFunction<> penalty_fn = [](const CoordArray<>& positions) -> Real {
+        PenaltyFunction<float> penalty_fn = [](const CoordArrayf& positions) -> float {
             return 2.0;
         };
         
-        GradientFunction<> gradient_fn = [](const CoordArray<>& positions) -> CoordArray<> {
-            return xt::ones<Real>(positions.shape());
+        GradientFunction<float> gradient_fn = [](const CoordArrayf& positions) -> CoordArrayf {
+            return xt::ones<float>(positions.shape());
         };
         
-        OptimizationParams<> params;
+        OptimizationParams<float> params;
         params.verbose = false;
         
         auto result = optimizer.optimize(initial_positions, penalty_fn, gradient_fn, params);
@@ -159,31 +159,31 @@ TEST_CASE("Optimizer: LBFGSOptimizer", "[pack][optimizer]") {
 TEST_CASE("Optimizer: Factory Function", "[pack][optimizer]") {
     
     SECTION("make_optimizer creates GradientDescentOptimizer") {
-        auto optimizer = make_optimizer<Real>("gradient_descent");
+        auto optimizer = make_optimizer<float>("gradient_descent");
         
         REQUIRE(optimizer != nullptr);
         REQUIRE(optimizer->name() == "GradientDescent");
         
         // Test short form
-        auto optimizer_short = make_optimizer<Real>("gd");
+        auto optimizer_short = make_optimizer<float>("gd");
         REQUIRE(optimizer_short != nullptr);
         REQUIRE(optimizer_short->name() == "GradientDescent");
     }
     
     SECTION("make_optimizer creates LBFGSOptimizer") {
-        auto optimizer = make_optimizer<Real>("lbfgs");
+        auto optimizer = make_optimizer<float>("lbfgs");
         
         REQUIRE(optimizer != nullptr);
         REQUIRE(optimizer->name() == "L-BFGS");
         
         // Test alternative name
-        auto optimizer_alt = make_optimizer<Real>("L-BFGS");
+        auto optimizer_alt = make_optimizer<float>("L-BFGS");
         REQUIRE(optimizer_alt != nullptr);
         REQUIRE(optimizer_alt->name() == "L-BFGS");
     }
     
     SECTION("make_optimizer throws for unknown type") {
-        REQUIRE_THROWS_AS(make_optimizer<Real>("unknown_optimizer"), std::invalid_argument);
+        REQUIRE_THROWS_AS(make_optimizer<float>("unknown_optimizer"), std::invalid_argument);
     }
 }
 
@@ -245,3 +245,4 @@ TEST_CASE("Optimizer: Template Type Support", "[pack][optimizer]") {
         REQUIRE(double_optimizer->name() == "L-BFGS");
     }
 }
+

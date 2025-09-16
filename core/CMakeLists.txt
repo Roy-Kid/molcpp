@@ -66,6 +66,16 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MOLCPP_SANITIZERS}")
 # implementation and is linked into both the main molcpp library and the
 # unit tests.
 set(molcpp_objects_sources
+    src/element.cpp
+    # I/O base classes
+    src/io/base/trajectory.cpp
+    # XYZ format implementation
+    src/io/formats/xyz/reader.cpp
+    src/io/formats/xyz/writer.cpp
+    src/io/formats/xyz/parser.cpp
+    # I/O utilities
+    src/io/utils/string_utils.cpp
+    src/io/utils/file_utils.cpp
     src/spatial/box.cpp
     src/spatial/boundary/open_boundary.cpp
     src/spatial/boundary/periodic_boundary.cpp
@@ -196,6 +206,9 @@ endif()
 if(${MOLCPP_BUILD_BENCHMARKS})
     add_subdirectory(benchmarks)
 endif()
+
+# Add examples directory
+add_subdirectory(examples)
 
 #-------------------------------------------------------------------------#
 # Installation configuration

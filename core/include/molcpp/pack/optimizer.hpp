@@ -11,7 +11,7 @@ namespace molcpp::pack {
 /**
  * @brief Optimization result structure
  */
-template<typename T = Real>
+template<typename T>
 struct OptimizationResult {
     CoordArray<T> positions;           // Final optimized positions (N, 3)
     T final_penalty;                   // Final penalty value
@@ -24,7 +24,7 @@ struct OptimizationResult {
 /**
  * @brief Optimization parameters
  */
-template<typename T = Real>
+template<typename T>
 struct OptimizationParams {
     Index max_iterations = 1000;       // Maximum number of iterations
     T tolerance = 1e-6;                // Convergence tolerance
@@ -37,19 +37,19 @@ struct OptimizationParams {
 /**
  * @brief Penalty function signature
  */
-template<typename T = Real>
+template<typename T>
 using PenaltyFunction = std::function<T(const CoordArray<T>&)>;
 
 /**
  * @brief Gradient function signature
  */
-template<typename T = Real>
+template<typename T>
 using GradientFunction = std::function<CoordArray<T>(const CoordArray<T>&)>;
 
 /**
  * @brief Base optimizer interface
  */
-template<typename T = Real>
+template<typename T>
 class Optimizer {
 public:
     virtual ~Optimizer() = default;
@@ -84,7 +84,7 @@ public:
 /**
  * @brief Gradient descent optimizer (placeholder implementation)
  */
-template<typename T = Real>
+template<typename T>
 class GradientDescentOptimizer : public Optimizer<T> {
 public:
     OptimizationResult<T> optimize(
@@ -101,7 +101,7 @@ public:
 /**
  * @brief L-BFGS optimizer (placeholder implementation)
  */
-template<typename T = Real>
+template<typename T>
 class LBFGSOptimizer : public Optimizer<T> {
 public:
     OptimizationResult<T> optimize(
@@ -118,7 +118,7 @@ public:
 /**
  * @brief Factory function for creating optimizers
  */
-template<typename T = Real>
+template<typename T>
 std::unique_ptr<Optimizer<T>> make_optimizer(const std::string& type);
 
 } // namespace molcpp::pack

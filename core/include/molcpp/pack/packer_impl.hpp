@@ -1,180 +1,55 @@
 #pragma once
 
 #include "packer.hpp"
+#include "constraint.hpp"
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
 
 namespace molcpp::pack {
 
-// MolPacker implementation
-template<typename T>
-MolPacker<T>::MolPacker() : rng_(std::random_device{}()) {}
+MolPacker::MolPacker() : rng_(std::random_device{}()) {}
 
-template<typename T>
-void MolPacker<T>::add_target(const target_type& target) {
-    targets_.push_back(target);
+void MolPacker::add_target(target_type&& target) {
+    targets_.push_back(std::move(target));
 }
 
-template<typename T>
-typename MolPacker<T>::target_type& MolPacker<T>::def_target(
+MolPacker::target_type& MolPacker::def_target(
     const frame_type& frame,
     size_t number,
-    std::unique_ptr<constraint_type> constraint,
+    const Constraint& constraint,
     bool is_fixed,
     const std::string& name) {
-    
-    target_type target(frame, number, std::move(constraint), is_fixed, nullptr, name);
+    target_type target(frame, number, constraint, is_fixed, name);
     targets_.push_back(std::move(target));
     return targets_.back();
 }
 
-template<typename T>
-typename MolPacker<T>::frame_type MolPacker<T>::pack(
+MolPacker::frame_type MolPacker::pack(
     const std::vector<target_type>& targets,
     size_t max_steps,
     uint32_t seed) {
-    
-    // Use provided targets or internal targets
     const auto& target_list = targets.empty() ? targets_ : targets;
-    
     if (target_list.empty()) {
         throw std::runtime_error("No targets to pack");
     }
-    
-    // Initialize random number generator
     init_rng(seed);
-    
-    // Generate initial positions
     auto positions = generate_initial_positions();
-    
-    // Use default optimizer if available
-    if (default_optimizer_) {
-        auto penalty_fn = [this](const xt::xarray<T>& pos) -> T {
-            return calculate_total_penalty(pos);
-        };
-        
-        auto gradient_fn = [this](const xt::xarray<T>& pos) -> xt::xarray<T> {
-            return calculate_total_gradient(pos);
-        };
-        
-        OptimizationParams<T> params;
-        params.max_iterations = max_steps;
-        params.seed = seed;
-        
-        last_result_ = default_optimizer_->optimize(positions, penalty_fn, gradient_fn, params);
-        positions = last_result_.positions;
-    } else {
-        // Fallback to basic optimization
-        T current_penalty = calculate_total_penalty(positions);
-        T previous_penalty = current_penalty;
-        T learning_rate = T(0.01);
-        
-        for (size_t step = 0; step < max_steps; ++step) {
-            // Perform optimization step
-            bool improved = optimize_step(positions, current_penalty, learning_rate);
-            
-            // Check convergence
-            if (is_converged(current_penalty, previous_penalty)) {
-                break;
-            }
-            
-            // Update learning rate
-            if (improved) {
-                learning_rate = std::min(learning_rate * T(1.1), T(0.1));
-            } else {
-                learning_rate = std::max(learning_rate * T(0.9), T(0.001));
-            }
-            
-            previous_penalty = current_penalty;
-        }
-        
-        // Create result for compatibility
-        last_result_.positions = positions;
-        last_result_.final_penalty = current_penalty;
-        last_result_.iterations = max_steps;
-        last_result_.converged = is_converged(current_penalty, previous_penalty);
-        last_result_.status = "Basic optimization completed";
+
+    float current_penalty = calculate_total_penalty(positions);
+    float previous_penalty = current_penalty;
+    float learning_rate = 0.01f;
+    for (size_t step = 0; step < max_steps; ++step) {
+        bool improved = optimize_step(positions, current_penalty, learning_rate);
+        if (is_converged(current_penalty, previous_penalty)) break;
+        learning_rate = improved ? std::min(learning_rate * 1.1f, 0.1f)
+                                 : std::max(learning_rate * 0.9f, 0.001f);
+        previous_penalty = current_penalty;
     }
-    
-    // Build and return result frame
     return build_result_frame(positions);
 }
 
-template<typename T>
-typename MolPacker<T>::frame_type MolPacker<T>::pack_with_params(
-    const std::vector<target_type>& targets,
-    const OptimizationParams<T>& params) {
-    
-    // Use provided targets or internal targets
-    const auto& target_list = targets.empty() ? targets_ : targets;
-    
-    if (target_list.empty()) {
-        throw std::runtime_error("No targets to pack");
-    }
-    
-    // Initialize random number generator
-    init_rng(params.seed);
-    
-    // Generate initial positions
-    auto positions = generate_initial_positions();
-    
-    // Use default optimizer if available
-    if (default_optimizer_) {
-        auto penalty_fn = [this](const xt::xarray<T>& pos) -> T {
-            return calculate_total_penalty(pos);
-        };
-        
-        auto gradient_fn = [this](const xt::xarray<T>& pos) -> xt::xarray<T> {
-            return calculate_total_gradient(pos);
-        };
-        
-        last_result_ = default_optimizer_->optimize(positions, penalty_fn, gradient_fn, params);
-        positions = last_result_.positions;
-    } else {
-        // Fallback to basic optimization with params
-        T current_penalty = calculate_total_penalty(positions);
-        T previous_penalty = current_penalty;
-        T learning_rate = params.learning_rate;
-        
-        for (size_t step = 0; step < params.max_iterations; ++step) {
-            // Perform optimization step
-            bool improved = optimize_step(positions, current_penalty, learning_rate);
-            
-            // Check convergence
-            if (std::abs(current_penalty - previous_penalty) < params.tolerance) {
-                break;
-            }
-            
-            // Update learning rate
-            if (improved) {
-                learning_rate = std::min(learning_rate * T(1.1), T(0.1));
-            } else {
-                learning_rate = std::max(learning_rate * T(0.9), T(0.001));
-            }
-            
-            previous_penalty = current_penalty;
-        }
-        
-        // Create result for compatibility
-        last_result_.positions = positions;
-        last_result_.final_penalty = current_penalty;
-        last_result_.iterations = params.max_iterations;
-        last_result_.converged = std::abs(current_penalty - previous_penalty) < params.tolerance;
-        last_result_.status = "Basic optimization completed";
-    }
-    
-    // Build and return result frame
-    return build_result_frame(positions);
-}
-
-template<typename T>
-void MolPacker<T>::set_default_optimizer(const std::string& optimizer_type) {
-    default_optimizer_ = make_optimizer<T>(optimizer_type);
-}
-
-template<typename T>
-size_t MolPacker<T>::n_points() const {
+size_t MolPacker::n_points() const {
     size_t total = 0;
     for (const auto& target : targets_) {
         total += target.n_points();
@@ -182,13 +57,12 @@ size_t MolPacker<T>::n_points() const {
     return total;
 }
 
-template<typename T>
-xt::xarray<T> MolPacker<T>::points() const {
+xt::xarray<float> MolPacker::points() const {
     if (targets_.empty()) {
-        return xt::xarray<T>::from_shape({0, 3});
+        return xt::xarray<float>::from_shape({0, 3});
     }
     
-    std::vector<xt::xarray<T>> target_points;
+    std::vector<xt::xarray<float>> target_points;
     for (const auto& target : targets_) {
         auto points = target.points();
         if (points.size() > 0) {
@@ -197,7 +71,7 @@ xt::xarray<T> MolPacker<T>::points() const {
     }
     
     if (target_points.empty()) {
-        return xt::xarray<T>::from_shape({0, 3});
+        return xt::xarray<float>::from_shape({0, 3});
     }
     
     // Concatenate all points
@@ -206,7 +80,7 @@ xt::xarray<T> MolPacker<T>::points() const {
         total_points += points.shape(0);
     }
     
-    auto result = xt::xarray<T>::from_shape({total_points, 3});
+    auto result = xt::xarray<float>::from_shape({total_points, 3});
     size_t offset = 0;
     
     for (const auto& points : target_points) {
@@ -222,97 +96,103 @@ xt::xarray<T> MolPacker<T>::points() const {
     return result;
 }
 
-template<typename T>
-void MolPacker<T>::clear() {
+void MolPacker::clear() {
     targets_.clear();
 }
 
-template<typename T>
-void MolPacker<T>::init_rng(uint32_t seed) {
+void MolPacker::init_rng(uint32_t seed) {
     if (seed == 0) {
         seed = std::random_device{}();
     }
     rng_.seed(seed);
 }
 
-template<typename T>
-xt::xarray<T> MolPacker<T>::generate_initial_positions() {
+xt::xarray<float> MolPacker::generate_initial_positions() {
     size_t total_points = n_points();
     if (total_points == 0) {
-        return xt::xarray<T>::from_shape({0, 3});
+        return xt::xarray<float>::from_shape({0, 3});
     }
     
-    auto positions = xt::xarray<T>::from_shape({total_points, 3});
-    
-    // For now, generate random positions in a reasonable range
-    // In a more sophisticated implementation, this would use the constraints
-    std::uniform_real_distribution<T> dist(-10.0, 10.0);
-    
-    for (size_t i = 0; i < total_points; ++i) {
-        for (int dim = 0; dim < 3; ++dim) {
-            positions(i, dim) = dist(rng_);
+    auto positions = xt::xarray<float>::from_shape({total_points, 3});
+    size_t offset = 0;
+    for (const auto& target : targets_) {
+        const auto n = target.n_points();
+        if (n == 0) { continue; }
+        // Let the constraint sampler initialize if available
+        auto sub = xt::xarray<float>::from_shape({n,3});
+        if (target.get_constraint().sampler) {
+            target.get_constraint().sampler(sub, rng_);
+        } else {
+            std::uniform_real_distribution<float> dist(-10.0f, 10.0f);
+            for (size_t i = 0; i < n; ++i) {
+                sub(i,0) = dist(rng_); sub(i,1) = dist(rng_); sub(i,2) = dist(rng_);
+            }
         }
+        for (size_t i = 0; i < n; ++i) {
+            positions(offset + i, 0) = sub(i,0);
+            positions(offset + i, 1) = sub(i,1);
+            positions(offset + i, 2) = sub(i,2);
+        }
+        offset += n;
     }
-    
     return positions;
 }
 
-template<typename T>
-T MolPacker<T>::calculate_total_penalty(const xt::xarray<T>& positions) const {
-    T total_penalty = T(0);
-    
+float MolPacker::calculate_total_penalty(const xt::xarray<float>& positions) const {
+    float total_penalty = 0.0f;
+    size_t offset = 0;
     for (const auto& target : targets_) {
-        if (target.get_constraint()) {
-            total_penalty += target.get_constraint()->penalty(positions);
+        const auto n = target.n_points();
+        if (n == 0) { continue; }
+        auto sub = xt::xarray<float>::from_shape({n,3});
+        for (size_t i = 0; i < n; ++i) {
+            sub(i,0) = positions(offset + i, 0);
+            sub(i,1) = positions(offset + i, 1);
+            sub(i,2) = positions(offset + i, 2);
         }
+        total_penalty += target.get_constraint().penalty(sub);
+        offset += n;
     }
-    
     return total_penalty;
 }
 
-template<typename T>
-xt::xarray<T> MolPacker<T>::calculate_total_gradient(const xt::xarray<T>& positions) const {
+xt::xarray<float> MolPacker::calculate_total_gradient(const xt::xarray<float>& positions) const {
     if (positions.size() == 0) {
-        return xt::xarray<T>::from_shape({0, 3});
+        return xt::xarray<float>::from_shape({0, 3});
     }
-    
     size_t n_points = positions.shape(0);
-    auto total_grad = xt::xarray<T>::from_shape({n_points, 3});
-    
-    // Initialize to zero
+    auto total_grad = xt::xarray<float>::from_shape({n_points, 3});
     for (size_t i = 0; i < n_points; ++i) {
-        for (int dim = 0; dim < 3; ++dim) {
-            total_grad(i, dim) = T(0);
-        }
+        total_grad(i,0) = total_grad(i,1) = total_grad(i,2) = 0.0f;
     }
-    
-    // Accumulate gradients from all constraints
+    size_t offset = 0;
     for (const auto& target : targets_) {
-        if (target.get_constraint()) {
-            auto grad = target.get_constraint()->dpenalty(positions);
-            if (grad.size() > 0) {
-                total_grad += grad;
+        const auto n = target.n_points();
+        if (n == 0) { continue; }
+        auto sub = xt::xarray<float>::from_shape({n,3});
+        for (size_t i = 0; i < n; ++i) {
+            sub(i,0) = positions(offset + i, 0);
+            sub(i,1) = positions(offset + i, 1);
+            sub(i,2) = positions(offset + i, 2);
+        }
+        auto grad = target.get_constraint().dpenalty(sub);
+        if (grad.size() > 0) {
+            for (size_t i = 0; i < n; ++i) {
+                total_grad(offset + i, 0) += grad(i,0);
+                total_grad(offset + i, 1) += grad(i,1);
+                total_grad(offset + i, 2) += grad(i,2);
             }
         }
+        offset += n;
     }
-    
     return total_grad;
 }
 
-template<typename T>
-bool MolPacker<T>::optimize_step(xt::xarray<T>& positions, T& current_penalty, T learning_rate) {
+bool MolPacker::optimize_step(xt::xarray<float>& positions, float& current_penalty, float learning_rate) {
     if (positions.size() == 0) return false;
-    
-    // Calculate gradient
     auto gradient = calculate_total_gradient(positions);
-    
-    // Apply gradient descent step
     auto new_positions = positions - learning_rate * gradient;
-    
-    // Calculate new penalty
-    T new_penalty = calculate_total_penalty(new_positions);
-    
-    // Check if we improved
+    float new_penalty = calculate_total_penalty(new_positions);
     if (new_penalty < current_penalty) {
         positions = std::move(new_positions);
         current_penalty = new_penalty;
@@ -322,8 +202,7 @@ bool MolPacker<T>::optimize_step(xt::xarray<T>& positions, T& current_penalty, T
     return false;
 }
 
-template<typename T>
-typename MolPacker<T>::frame_type MolPacker<T>::build_result_frame(const xt::xarray<T>& positions) const {
+MolPacker::frame_type MolPacker::build_result_frame(const xt::xarray<float>& positions) const {
     frame_type result;
     
     if (positions.size() == 0) {
@@ -335,10 +214,10 @@ typename MolPacker<T>::frame_type MolPacker<T>::build_result_frame(const xt::xar
     // Create atoms block
     molcpp::Block atoms;
     
-    // Add coordinates
-    auto x = xt::xarray<T>::from_shape({total_points});
-    auto y = xt::xarray<T>::from_shape({total_points});
-    auto z = xt::xarray<T>::from_shape({total_points});
+    // Add coordinates in both formats for compatibility
+    auto x = xt::xarray<float>::from_shape({total_points});
+    auto y = xt::xarray<float>::from_shape({total_points});
+    auto z = xt::xarray<float>::from_shape({total_points});
     
     for (size_t i = 0; i < total_points; ++i) {
         x(i) = positions(i, 0);
@@ -350,17 +229,26 @@ typename MolPacker<T>::frame_type MolPacker<T>::build_result_frame(const xt::xar
     atoms["y"] = std::move(y);
     atoms["z"] = std::move(z);
     
-    // Add atom IDs
-    auto ids = xt::xarray<T>::from_shape({total_points});
+    // Also add coords format for convenience
+    auto coords = xt::xarray<float>::from_shape({total_points, 3});
     for (size_t i = 0; i < total_points; ++i) {
-        ids(i) = static_cast<T>(i + 1);
+        coords(i, 0) = positions(i, 0);
+        coords(i, 1) = positions(i, 1);
+        coords(i, 2) = positions(i, 2);
+    }
+    atoms["coords"] = std::move(coords);
+    
+    // Add atom IDs
+    auto ids = xt::xarray<float>::from_shape({total_points});
+    for (size_t i = 0; i < total_points; ++i) {
+    ids(i) = static_cast<float>(i + 1);
     }
     atoms["id"] = std::move(ids);
     
     // Add atom types (default to 1 for now)
-    auto types = xt::xarray<T>::from_shape({total_points});
+    auto types = xt::xarray<float>::from_shape({total_points});
     for (size_t i = 0; i < total_points; ++i) {
-        types(i) = T(1);
+    types(i) = 1.0f;
     }
     atoms["type"] = std::move(types);
     
@@ -369,8 +257,7 @@ typename MolPacker<T>::frame_type MolPacker<T>::build_result_frame(const xt::xar
     return result;
 }
 
-template<typename T>
-bool MolPacker<T>::is_converged(T current_penalty, T previous_penalty, T tolerance) const {
+bool MolPacker::is_converged(float current_penalty, float previous_penalty, float tolerance) const {
     return std::abs(current_penalty - previous_penalty) < tolerance;
 }
 

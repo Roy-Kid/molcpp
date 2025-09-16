@@ -16,21 +16,21 @@ TEST_CASE("Target: Basic Functionality", "[pack][target]") {
         Frame frame;
         
         // Add coordinate data for a water molecule
-        xt::xarray<Real> coords = xt::zeros<Real>({3, 3});
-        coords(0, 0) = 0.0; coords(0, 1) = 0.0; coords(0, 2) = 0.0;   // O
-        coords(1, 0) = 1.0; coords(1, 1) = 0.0; coords(1, 2) = 0.0;   // H1
-        coords(2, 0) = 0.0; coords(2, 1) = 1.0; coords(2, 2) = 0.0;   // H2
+        xt::xarray<float> coords = xt::zeros<float>({3, 3});
+        coords(0, 0) = 0.0f; coords(0, 1) = 0.0f; coords(0, 2) = 0.0f;   // O
+        coords(1, 0) = 1.0f; coords(1, 1) = 0.0f; coords(1, 2) = 0.0f;   // H1
+        coords(2, 0) = 0.0f; coords(2, 1) = 1.0f; coords(2, 2) = 0.0f;   // H2
         
         auto block = make_block_from_arrays("coords", coords);
         frame.set_block("atoms", std::move(block));
         
         // Create constraint
-        Vec3<> box_lengths{10.0, 10.0, 10.0};
-        Vec3<> box_origin{-5.0, -5.0, -5.0};
-        auto constraint = std::make_unique<InsideBoxConstraint<Real>>(box_lengths, box_origin);
+        Vec3f box_lengths{10.0f, 10.0f, 10.0f};
+        Vec3f box_origin{-5.0f, -5.0f, -5.0f};
+        auto constraint = make_inside_box(box_lengths, box_origin);
         
         // Create target
-        Target<Real> target(frame, 10, std::move(constraint));
+        Target target(frame, 10, constraint);
         
         REQUIRE(target.get_number() == 10);
         REQUIRE(target.n_points() == 30);  // 10 copies * 3 atoms each
@@ -40,73 +40,73 @@ TEST_CASE("Target: Basic Functionality", "[pack][target]") {
         // Create a simple frame
         Frame frame;
         
-        xt::xarray<Real> coords = xt::zeros<Real>({2, 3});
-        coords(0, 0) = 1.0; coords(0, 1) = 2.0; coords(0, 2) = 3.0;
-        coords(1, 0) = 4.0; coords(1, 1) = 5.0; coords(1, 2) = 6.0;
+        xt::xarray<float> coords = xt::zeros<float>({2, 3});
+        coords(0, 0) = 1.0f; coords(0, 1) = 2.0f; coords(0, 2) = 3.0f;
+        coords(1, 0) = 4.0f; coords(1, 1) = 5.0f; coords(1, 2) = 6.0f;
         
         auto block = make_block_from_arrays("coords", coords);
         frame.set_block("atoms", std::move(block));
         
         // Create target with a simple constraint
-        Vec3<> box_lengths{10.0, 10.0, 10.0};
-        Vec3<> box_origin{-5.0, -5.0, -5.0};
-        auto constraint = std::make_unique<InsideBoxConstraint<Real>>(box_lengths, box_origin);
-        Target<Real> target(frame, 1, std::move(constraint));
+        Vec3f box_lengths{10.0f, 10.0f, 10.0f};
+        Vec3f box_origin{-5.0f, -5.0f, -5.0f};
+        auto constraint = make_inside_box(box_lengths, box_origin);
+        Target target(frame, 1, constraint);
         
         // Extract coordinates
         auto extracted_coords = target.points();
         
         REQUIRE(extracted_coords.shape(0) == 2);
         REQUIRE(extracted_coords.shape(1) == 3);
-        REQUIRE(extracted_coords(0, 0) == Approx(1.0));
-        REQUIRE(extracted_coords(0, 1) == Approx(2.0));
-        REQUIRE(extracted_coords(0, 2) == Approx(3.0));
-        REQUIRE(extracted_coords(1, 0) == Approx(4.0));
-        REQUIRE(extracted_coords(1, 1) == Approx(5.0));
-        REQUIRE(extracted_coords(1, 2) == Approx(6.0));
+        REQUIRE(extracted_coords(0, 0) == Approx(1.0f));
+        REQUIRE(extracted_coords(0, 1) == Approx(2.0f));
+        REQUIRE(extracted_coords(0, 2) == Approx(3.0f));
+        REQUIRE(extracted_coords(1, 0) == Approx(4.0f));
+        REQUIRE(extracted_coords(1, 1) == Approx(5.0f));
+        REQUIRE(extracted_coords(1, 2) == Approx(6.0f));
     }
     
     SECTION("Target with x, y, z coordinate format") {
         // Create frame with separate x, y, z arrays
         Frame frame;
         
-        xt::xarray<Real> coords = xt::zeros<Real>({2, 3});
-        coords(0, 0) = 1.0; coords(0, 1) = 2.0; coords(0, 2) = 3.0;
-        coords(1, 0) = 4.0; coords(1, 1) = 5.0; coords(1, 2) = 6.0;
+        xt::xarray<float> coords = xt::zeros<float>({2, 3});
+        coords(0, 0) = 1.0f; coords(0, 1) = 2.0f; coords(0, 2) = 3.0f;
+        coords(1, 0) = 4.0f; coords(1, 1) = 5.0f; coords(1, 2) = 6.0f;
         
         auto block = make_block_from_arrays("coords", coords);
         frame.set_block("atoms", std::move(block));
         
         // Create target with a simple constraint
-        Vec3<> box_lengths{10.0, 10.0, 10.0};
-        Vec3<> box_origin{-5.0, -5.0, -5.0};
-        auto constraint = std::make_unique<InsideBoxConstraint<Real>>(box_lengths, box_origin);
-        Target<Real> target(frame, 1, std::move(constraint));
+        Vec3f box_lengths{10.0f, 10.0f, 10.0f};
+        Vec3f box_origin{-5.0f, -5.0f, -5.0f};
+        auto constraint = make_inside_box(box_lengths, box_origin);
+        Target target(frame, 1, constraint);
         
         // Extract coordinates
         auto extracted_coords = target.points();
         
         REQUIRE(extracted_coords.shape(0) == 2);
         REQUIRE(extracted_coords.shape(1) == 3);
-        REQUIRE(extracted_coords(0, 0) == Approx(1.0));
-        REQUIRE(extracted_coords(0, 1) == Approx(2.0));
-        REQUIRE(extracted_coords(0, 2) == Approx(3.0));
-        REQUIRE(extracted_coords(1, 0) == Approx(4.0));
-        REQUIRE(extracted_coords(1, 1) == Approx(5.0));
-        REQUIRE(extracted_coords(1, 2) == Approx(6.0));
+        REQUIRE(extracted_coords(0, 0) == Approx(1.0f));
+        REQUIRE(extracted_coords(0, 1) == Approx(2.0f));
+        REQUIRE(extracted_coords(0, 2) == Approx(3.0f));
+        REQUIRE(extracted_coords(1, 0) == Approx(4.0f));
+        REQUIRE(extracted_coords(1, 1) == Approx(5.0f));
+        REQUIRE(extracted_coords(1, 2) == Approx(6.0f));
     }
     
     SECTION("Target string representation") {
         Frame frame;
         
-        xt::xarray<Real> coords = xt::zeros<Real>({2, 3});
+        xt::xarray<float> coords = xt::zeros<float>({2, 3});
         auto block = make_block_from_arrays("coords", coords);
         frame.set_block("atoms", std::move(block));
         
-        Vec3<> box_lengths{10.0, 10.0, 10.0};
-        Vec3<> box_origin{-5.0, -5.0, -5.0};
-        auto constraint = std::make_unique<InsideBoxConstraint<Real>>(box_lengths, box_origin);
-        Target<Real> target(frame, 5, std::move(constraint));
+        Vec3f box_lengths{10.0f, 10.0f, 10.0f};
+        Vec3f box_origin{-5.0f, -5.0f, -5.0f};
+        auto constraint = make_inside_box(box_lengths, box_origin);
+        Target target(frame, 5, constraint);
         
         std::string str_repr = target.to_string();
         REQUIRE(str_repr.find("Target") != std::string::npos);
@@ -119,44 +119,48 @@ TEST_CASE("Target: Constraint Integration", "[pack][target]") {
     SECTION("Target with box constraint") {
         Frame frame;
         
-        xt::xarray<Real> coords = xt::zeros<Real>({1, 3});
-        coords(0, 0) = 0.0; coords(0, 1) = 0.0; coords(0, 2) = 0.0;
+        xt::xarray<float> coords = xt::zeros<float>({1, 3});
+        coords(0, 0) = 0.0f; coords(0, 1) = 0.0f; coords(0, 2) = 0.0f;
         
         auto block = make_block_from_arrays("coords", coords);
         frame.set_block("atoms", std::move(block));
         
         // Create constraint
-        Vec3<> box_lengths{2.0, 2.0, 2.0};
-        Vec3<> box_origin{-1.0, -1.0, -1.0};
-        auto constraint = std::make_unique<InsideBoxConstraint<Real>>(box_lengths, box_origin);
+        Vec3f box_lengths{2.0f, 2.0f, 2.0f};
+        Vec3f box_origin{-1.0f, -1.0f, -1.0f};
+        auto constraint = make_inside_box(box_lengths, box_origin);
         
-        Target<Real> target(frame, 1, std::move(constraint));
+        Target target(frame, 1, constraint);
         
-        REQUIRE(target.get_constraint() != nullptr);
-        
-        // Test coordinate that should be inside
-        Vec3<> inside_point{0.5, 0.5, 0.5};
-        REQUIRE(constraint->penalty(xt::zeros<Real>({1, 3})) == Approx(0.0));
+        // Test constraint exists and works
+        auto test_points_inside = xt::zeros<float>({1, 3});
+        REQUIRE(target.get_constraint().penalty(test_points_inside) == Approx(0.0f));
         
         // Test coordinate that should be outside
-        Vec3<> outside_point{2.0, 0.0, 0.0};
-        REQUIRE(constraint->penalty(xt::zeros<Real>({1, 3})) >= 0.0);
+        xt::xarray<float> test_points_outside = xt::zeros<float>({1, 3});
+        test_points_outside(0, 0) = 2.0f; // Outside the box
+        REQUIRE(target.get_constraint().penalty(test_points_outside) > 0.0f);
     }
     
     SECTION("Target without constraint") {
         Frame frame;
         
-        xt::xarray<Real> coords = xt::zeros<Real>({1, 3});
+        xt::xarray<float> coords = xt::zeros<float>({1, 3});
         auto block = make_block_from_arrays("coords", coords);
         frame.set_block("atoms", std::move(block));
         
-        Target<Real> target(frame, 1, nullptr);
+        // Create a simple constraint for testing
+        Vec3f box_lengths{10.0f, 10.0f, 10.0f};
+        Vec3f box_origin{0.0f, 0.0f, 0.0f};
+        auto constraint = make_inside_box(box_lengths, box_origin);
+        Target target(frame, 1, constraint);
         
-        REQUIRE(target.get_constraint() != nullptr);
+        // Test constraint exists
+        REQUIRE(target.get_constraint().penalty != nullptr); // constraint function exists
         
         // With constraint, penalty calculation is available
-        Vec3<> any_point{100.0, 100.0, 100.0};
-        // Constraint penalty calculation is available
+        auto test_points = xt::zeros<float>({1, 3});
+        REQUIRE(target.get_constraint().penalty(test_points) >= 0.0f);
     }
 }
 
