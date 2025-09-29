@@ -5,9 +5,9 @@
 #include <pybind11/stl.h>
 #include <pybind11/numpy.h>
 
-#include "molcpp/ecs/ecs.hpp"
-#include "molcpp/ecs/entity.hpp"
-#include "molcpp/ecs/components.hpp"
+#include "molcpp/core/ecs/ecs.hpp"
+#include "molcpp/core/ecs/entity.hpp"
+#include "molcpp/core/ecs/components.hpp"
 
 namespace py = pybind11;
 

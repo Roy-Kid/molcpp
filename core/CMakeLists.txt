@@ -67,15 +67,15 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MOLCPP_SANITIZERS}")
 # unit tests.
 set(molcpp_objects_sources
     src/element.cpp
-    # I/O base classes
-    src/io/base/trajectory.cpp
-    # XYZ format implementation
-    src/io/formats/xyz/reader.cpp
-    src/io/formats/xyz/writer.cpp
-    src/io/formats/xyz/parser.cpp
-    # I/O utilities
-    src/io/utils/string_utils.cpp
-    src/io/utils/file_utils.cpp
+    # I/O utilities and XYZ implementation
+    src/io/utils.cpp
+    src/io/xyz/xyz_parse.cpp
+    src/io/xyz/xyz_frame_reader.cpp
+    src/io/xyz/xyz_traj_reader.cpp
+    src/io/xyz/xyz_writer.cpp
+    src/io/xyz/xyz_utils.cpp
+    src/io/xyz/xyz_iter.cpp
+    # Core spatial module
     src/spatial/box.cpp
     src/spatial/boundary/open_boundary.cpp
     src/spatial/boundary/periodic_boundary.cpp
@@ -87,16 +87,43 @@ set(molcpp_objects_sources
     src/spatial/region/intersection_region.cpp
     src/spatial/region/union_region.cpp
     src/spatial/region/complement_region.cpp
+    # Core locality module
     src/locality/NeighborList.cpp
     src/locality/AABBQuery.cpp
-    src/ecs/entity.cpp
-    src/ecs/system.cpp
+    # Core ECS module
+    src/core/ecs/entity.cpp
+    src/core/ecs/system.cpp
+    # Core bond module
+    src/bond.cpp
+    # Core pack module
     src/pack/optimizer.cpp
+    # Core ForceField system - TEMPORARILY DISABLED DUE TO COMPATIBILITY ISSUES
+    # src/core/forcefield.cpp
 )
 
 add_library(molcpp_objects OBJECT ${molcpp_objects_sources})
-target_compile_features(molcpp_objects PRIVATE cxx_std_20 c_std_99)
-setup_xtensor(molcpp_objects)
+target_compile_features(molcpp_objects PRIVATE cxx_std_23 c_std_99)
+
+# Setup dependencies individually
+find_or_fetch_xtensor()
+find_or_fetch_xsimd()
+target_link_libraries(molcpp_objects PUBLIC xtensor xsimd)
+
+# Add BLAS support for non-WASM builds
+if(NOT EMSCRIPTEN)
+    find_or_fetch_xtensor_blas()
+    target_link_libraries(molcpp_objects PUBLIC xtensor-blas)
+    target_compile_definitions(molcpp_objects PUBLIC HAVE_CBLAS=1)
+    
+    if(WIN32)
+        find_package(OpenBLAS REQUIRED)
+        target_link_libraries(molcpp_objects PUBLIC OpenBLAS::OpenBLAS)
+    else()
+        find_package(BLAS REQUIRED)
+        find_package(LAPACK REQUIRED)
+        target_link_libraries(molcpp_objects PUBLIC ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
+    endif()
+endif()
 
 target_include_directories(molcpp_objects SYSTEM BEFORE PRIVATE ${EXTERNAL_INCLUDES})
 
@@ -155,7 +182,28 @@ set(MOLCPP_OBJECTS
 # Add the main molcpp library
 add_library(molcpp ${MOLCPP_OBJECTS})
 
-target_compile_features(molcpp PUBLIC cxx_std_20 c_std_99)
+target_compile_features(molcpp PUBLIC cxx_std_23 c_std_99)
+
+# Setup dependencies individually
+find_or_fetch_xtensor()
+find_or_fetch_xsimd()
+target_link_libraries(molcpp PUBLIC xtensor xsimd)
+
+# Add BLAS support for non-WASM builds
+if(NOT EMSCRIPTEN)
+    find_or_fetch_xtensor_blas()
+    target_link_libraries(molcpp PUBLIC xtensor-blas)
+    target_compile_definitions(molcpp PUBLIC HAVE_CBLAS=1)
+    
+    if(WIN32)
+        find_package(OpenBLAS REQUIRED)
+        target_link_libraries(molcpp PUBLIC OpenBLAS::OpenBLAS)
+    else()
+        find_package(BLAS REQUIRED)
+        find_package(LAPACK REQUIRED)
+        target_link_libraries(molcpp PUBLIC ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
+    endif()
+endif()
 
 set_target_properties(molcpp PROPERTIES
     CXX_VISIBILITY_PRESET hidden
@@ -270,3 +318,5 @@ else()
     target_compile_definitions(molcpp_objects PRIVATE MOLCPP_USE_DOUBLE=0)
     message(STATUS "Using single precision (float) for floating point calculations")
 endif()
+
+# XYZ IO module uses standard include directory structure

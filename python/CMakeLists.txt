@@ -44,7 +44,26 @@ if(TARGET molcpp)
     message(STATUS "Linking Python bindings with molcpp core library")
 endif()
 
-setup_xtensor(_bindings)
+# Setup dependencies individually
+find_or_fetch_xtensor()
+find_or_fetch_xsimd()
+target_link_libraries(_bindings PRIVATE xtensor xsimd)
+
+# Add BLAS support for non-WASM builds
+if(NOT EMSCRIPTEN)
+    find_or_fetch_xtensor_blas()
+    target_link_libraries(_bindings PRIVATE xtensor-blas)
+    target_compile_definitions(_bindings PRIVATE HAVE_CBLAS=1)
+    
+    if(WIN32)
+        find_package(OpenBLAS REQUIRED)
+        target_link_libraries(_bindings PRIVATE OpenBLAS::OpenBLAS)
+    else()
+        find_package(BLAS REQUIRED)
+        find_package(LAPACK REQUIRED)
+        target_link_libraries(_bindings PRIVATE ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
+    endif()
+endif()
 
 # Set version info
 target_compile_definitions(_bindings PRIVATE VERSION_INFO=${PROJECT_VERSION})

@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/benchmark/catch_benchmark.hpp>
-#include "molcpp/ecs/ecs.hpp"
-#include "molcpp/atom.hpp"
+#include "molcpp/core/ecs/ecs.hpp"
+#include "molcpp/core/atom.hpp"
 #include <vector>
 #include <memory>
 

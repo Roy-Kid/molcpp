@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 4.0)
 
 # Read version from core/VERSION
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/core/VERSION")
@@ -23,6 +23,7 @@ option(MOLCPP_BUILD_PYTHON "Build Python bindings" OFF)
 option(MOLCPP_BUILD_TESTS "Build tests" ON)
 option(MOLCPP_BUILD_BENCHMARKS "Build benchmarks" OFF)
 option(MOLCPP_USE_SIMD "Enable SIMD optimizations using xsimd" ON)
+option(MOLCPP_BUILD_WASM "Build WASM xyz subset" OFF)
 
 # Set default build type
 if(NOT CMAKE_BUILD_TYPE)
@@ -30,7 +31,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Global C++ standard
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # add_definitions(-DXTENSOR_ENABLE_XSIMD)
@@ -45,12 +46,18 @@ message(STATUS "  MOLCPP_BUILD_CORE:        ${MOLCPP_BUILD_CORE}")
 message(STATUS "  MOLCPP_BUILD_PYTHON:      ${MOLCPP_BUILD_PYTHON}")
 message(STATUS "  MOLCPP_BUILD_TESTS:       ${MOLCPP_BUILD_TESTS}")
 message(STATUS "  MOLCPP_BUILD_BENCHMARKS:  ${MOLCPP_BUILD_BENCHMARKS}")
+message(STATUS "  MOLCPP_BUILD_WASM:        ${MOLCPP_BUILD_WASM}")
 message(STATUS "  CMAKE_BUILD_TYPE:         ${CMAKE_BUILD_TYPE}")
 message(STATUS "==========================================")
 message(STATUS "")
 
 # Setup dependencies based on what we're building
 if(MOLCPP_BUILD_CORE OR MOLCPP_BUILD_PYTHON)
+    find_or_fetch_xtensor()
+endif()
+
+if(MOLCPP_BUILD_WASM)
+    # xtensor headers needed as well
     find_or_fetch_xtensor()
 endif()
 
@@ -73,3 +80,14 @@ if(MOLCPP_BUILD_PYTHON)
     message(STATUS "Building molcpp Python bindings")
     add_subdirectory(python)
 endif()
+
+if(MOLCPP_BUILD_WASM)
+    message(STATUS "Building molcpp WASM xyz subset")
+    add_subdirectory(wasm)
+endif()
+
+# Build examples (disabled for now)
+# if(MOLCPP_BUILD_CORE)
+#     message(STATUS "Building molcpp examples")
+#     add_subdirectory(examples)
+# endif()

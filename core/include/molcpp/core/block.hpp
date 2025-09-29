@@ -48,7 +48,10 @@ public:
     // Destructor
     ~Block() = default;
 
-    // Core mapping API - smart proxy with auto deduction and explicit conversion
+    // Core mapping API - smart proxy with explicit type conversion required
+    // IMPORTANT: When using operator[], you MUST specify the type explicitly
+    // WRONG: auto data = block["key"];  // This gives BlockProxy, not xt::xarray
+    // CORRECT: xt::xarray<double> data = block["key"];  // Explicit type declaration
     class BlockProxy;
     BlockProxy operator[](const std::string& key);
     const BlockProxy operator[](const std::string& key) const;
@@ -132,7 +135,12 @@ public:
     size_type get_size() const noexcept { return vars_.size(); }
 
 public:
-    // Smart proxy class for automatic type deduction and explicit conversion
+    // Smart proxy class for explicit type conversion
+    // IMPORTANT: This class requires explicit type conversion to get xt::xarray types
+    // Usage patterns:
+    // 1. xt::xarray<double> data = block["key"];  // Copy
+    // 2. xt::xarray<double>& ref = block["key"];  // Reference (direct assignment)
+    // 3. xt::xarray<double>& ref = block.get<double>("key");  // Direct get method
     class BlockProxy {
     private:
         const Block* block_ptr_;

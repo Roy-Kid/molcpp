@@ -1,6 +1,6 @@
-#include "molcpp/bond.hpp"
-#include "molcpp/atom.hpp"
-#include "molcpp/ecs/components.hpp"
+#include "molcpp/core/bond.hpp"
+#include "molcpp/core/atom.hpp"
+#include "molcpp/core/ecs/components.hpp"
 
 namespace molcpp {
 

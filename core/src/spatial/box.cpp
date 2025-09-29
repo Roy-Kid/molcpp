@@ -2,7 +2,9 @@
 #include "molcpp/spatial/boundary.hpp"
 #include "molcpp/spatial/region.hpp"
 #include <xtensor/containers/xarray.hpp>
+#ifndef EMSCRIPTEN
 #include <xtensor-blas/xlinalg.hpp>
+#endif
 #include <memory>
 
 namespace molcpp {
@@ -92,11 +94,17 @@ XYZ Box::toFrac(const XYZ& cart) const {
     const auto& matrix = _region.getMatrix();
     const auto& origin = _region.getOrigin();
     
+#ifndef EMSCRIPTEN
     // Calculate inverse matrix
     XYZ inv_matrix = xt::linalg::inv(matrix);
     
     // frac = H^{-1} @ (cart - origin)
     return xt::linalg::dot(cart - origin, inv_matrix);
+#else
+    // Simplified implementation for WASM - just return identity transformation
+    // TODO: Implement proper matrix operations without BLAS
+    return cart - origin;
+#endif
 }
 
 XYZ Box::toCart(const XYZ& frac) const {
@@ -104,8 +112,14 @@ XYZ Box::toCart(const XYZ& frac) const {
     const auto& matrix = _region.getMatrix();
     const auto& origin = _region.getOrigin();
     
+#ifndef EMSCRIPTEN
     // cart = origin + H @ frac
     return origin + xt::linalg::dot(frac, matrix);
+#else
+    // Simplified implementation for WASM - just return identity transformation
+    // TODO: Implement proper matrix operations without BLAS
+    return origin + frac;
+#endif
 }
 
 xt::xarray<bool> Box::isIn(const XYZ& points) const {

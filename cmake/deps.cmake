@@ -38,30 +38,53 @@ function(setup_catch2_target target_name)
     endif()
 endfunction()
 
+function(find_or_fetch_xtl)
+  include(FetchContent)
+  
+  if(NOT TARGET xtl)
+    find_package(xtl 0.8 QUIET)
+    if(NOT xtl_FOUND)
+      message(STATUS "xtl not found, fetching...")
+      FetchContent_Declare(
+        xtl
+        GIT_REPOSITORY https://github.com/xtensor-stack/xtl.git
+        GIT_TAG        0.8.0
+      )
+      FetchContent_MakeAvailable(xtl)
+    else()
+      message(STATUS "xtl found via find_package")
+    endif()
+  endif()
+endfunction()
+
 function(find_or_fetch_xtensor)
   include(FetchContent)
+  
+  # Ensure xtl is available first
+  find_or_fetch_xtl()
 
   if(NOT TARGET xtensor)
     find_package(xtensor 0.27 QUIET)
     if(NOT xtensor_FOUND)
       message(STATUS "xtensor not found, fetching...")
       FetchContent_Declare(
-        xtl
-        GIT_REPOSITORY https://github.com/xtensor-stack/xtl.git
-        GIT_TAG        0.8.0
-      )
-      FetchContent_Declare(
         xtensor
         GIT_REPOSITORY https://github.com/xtensor-stack/xtensor.git
         GIT_TAG        0.27.0
       )
-      FetchContent_MakeAvailable(xtl xtensor)
+      FetchContent_MakeAvailable(xtensor)
     else()
       message(STATUS "xtensor found via find_package")
     endif()
   endif()
+endfunction()
 
-  # --- xtensor-blas ---
+function(find_or_fetch_xtensor_blas)
+  include(FetchContent)
+  
+  # Ensure xtensor is available first
+  find_or_fetch_xtensor()
+  
   if(NOT TARGET xtensor-blas)
     find_package(xtensor-blas 0.23 QUIET)
     if(NOT xtensor-blas_FOUND)
@@ -76,8 +99,11 @@ function(find_or_fetch_xtensor)
       message(STATUS "xtensor-blas found via find_package")
     endif()
   endif()
+endfunction()
 
-  # --- xsimd ---
+function(find_or_fetch_xsimd)
+  include(FetchContent)
+  
   if(NOT TARGET xsimd)
     find_package(xsimd 13.2.0 QUIET)
     if(NOT xsimd_FOUND)
@@ -92,28 +118,6 @@ function(find_or_fetch_xtensor)
       message(STATUS "xsimd found via find_package")
     endif()
   endif()
-endfunction()
-
-function(setup_xtensor target_name)
-  if(NOT TARGET ${target_name})
-    message(FATAL_ERROR "Target ${target_name} not found")
-  endif()
-  target_link_libraries(${target_name} PUBLIC xtensor xtensor-blas xsimd)
-  add_definitions(-DHAVE_CBLAS=1)
-  if (WIN32)
-    find_package(OpenBLAS REQUIRED)
-    target_link_libraries(${target_name} PUBLIC OpenBLAS::OpenBLAS)
-  else()
-    find_package(BLAS REQUIRED)
-    find_package(LAPACK REQUIRED)
-    target_link_libraries(${target_name} PUBLIC ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
-  endif()
-  get_target_property(_xt_inc xtensor INTERFACE_INCLUDE_DIRECTORIES)
-  get_target_property(_xbl_inc xtensor-blas INTERFACE_INCLUDE_DIRECTORIES)
-  get_target_property(_xsimd_inc xsimd INTERFACE_INCLUDE_DIRECTORIES)
-  message(STATUS "xtensor includes: ${_xt_inc}")
-  message(STATUS "xtensor-blas includes: ${_xbl_inc}")
-  message(STATUS "xsimd includes: ${_xsimd_inc}")
 endfunction()
 
 

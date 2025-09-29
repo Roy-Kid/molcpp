@@ -9,6 +9,7 @@
 #include <ranges>
 #include <span>
 #include <format>
+#include "paramdict.hpp"
 
 namespace molcpp {
 
@@ -85,6 +86,7 @@ public:
     T get_metadata(const std::string& key) const;
     
     bool has_metadata(const std::string& key) const;
+    ParamDict metadata_dict() const { return ParamDict(&metadata_); }
     
     // 兼容性方法
     bool contains_metadata(const std::string& key) const { return has_metadata(key); }
